@@ -1,0 +1,178 @@
+import type { App, Screen } from '../app';
+import { confirmDialog, formatDateTime, h, ICONS, toast } from '../ui';
+import { getLens, lensExists } from '../../lenses/registry';
+import { sanitizeParams } from '../../lenses/params';
+import { paramSummary } from '../params-ui';
+import { exportFilename, metersToFeet } from '../../util/format';
+import { downloadBlob, shareFiles } from '../share';
+import { processAndSave } from '../capture';
+import { randomSeed } from '../../util/prng';
+import type { Capture } from '../../storage/types';
+import { errorMessage } from '../../diagnostics/log';
+
+export function createDetail(app: App, id: string): Screen {
+  const s = app.s;
+  const urls: string[] = [];
+  let capture: Capture | undefined;
+  let outputUrl = '';
+  let originalUrl = '';
+
+  const img = h('img', { class: 'detail-img', alt: '' });
+  const compareBadge = h('div', { class: 'compare-badge', text: 'Original', hidden: true });
+  const view = h('div', { class: 'detail-view' }, img, compareBadge);
+  const info = h('div', { class: 'detail-info' });
+  const actions = h('div', { class: 'detail-actions' });
+  const header = h(
+    'header',
+    { class: 'screen-header' },
+    h('button', { class: 'icon-btn', 'aria-label': 'Back', html: ICONS.back, onclick: () => app.back() }),
+    h('h1', { text: 'Photo' }),
+  );
+  const el = h('div', { class: 'screen detail' }, header, view, h('div', { class: 'detail-panel' }, actions, info));
+
+  function filename(c: Capture) {
+    return exportFilename(new Date(c.createdAt), c.lensId, c.outputType === 'image/png' ? 'png' : 'jpg');
+  }
+
+  async function outputFile(c: Capture): Promise<File | null> {
+    const blob = await s.store.blob(c.outputKey);
+    return blob ? new File([blob], filename(c), { type: blob.type }) : null;
+  }
+
+  function action(icon: string, label: string, run: () => void | Promise<void>, cls = '') {
+    return h('button', { class: `action ${cls}`.trim(), html: `${icon}<span>${label}</span>`, onclick: () => void run() });
+  }
+
+  function infoRow(label: string, value: string) {
+    return h('div', { class: 'info-row' }, h('dt', { text: label }), h('dd', { text: value }));
+  }
+
+  async function load() {
+    capture = await s.store.get(id);
+    if (!capture) {
+      info.replaceChildren(h('p', { text: 'This photo no longer exists.' }));
+      return;
+    }
+    const c = capture;
+    const out = await s.store.blob(c.outputKey);
+    if (out) {
+      outputUrl = URL.createObjectURL(out);
+      urls.push(outputUrl);
+      img.src = outputUrl;
+    }
+    const orig = await s.store.blob(c.originalKey);
+    if (orig) {
+      originalUrl = URL.createObjectURL(orig);
+      urls.push(originalUrl);
+    }
+
+    const known = lensExists(c.lensId);
+    const lens = getLens(c.lensId);
+    const rows = h('dl', { class: 'info-list' });
+    rows.append(
+      infoRow('Taken', formatDateTime(c.createdAt)),
+      infoRow('Lens', known ? `${lens.name} (v${c.lensVersion})` : `${c.lensId} (not in this version)`),
+    );
+    if (known && lens.params.length) rows.append(infoRow('Settings', paramSummary(lens.params, c.params)));
+    rows.append(infoRow('Size', `${c.width} × ${c.height}`));
+    if (c.geo) {
+      const alt = c.geo.altitude !== null ? ` · ${Math.round(metersToFeet(c.geo.altitude)).toLocaleString()} ft (${Math.round(c.geo.altitude)} m)` : '';
+      rows.append(infoRow('Location', `${c.geo.lat.toFixed(5)}, ${c.geo.lon.toFixed(5)}${alt}`));
+    }
+    const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene' }[c.captureMethod ?? 'file'];
+    rows.append(infoRow('Source', `${method}${c.source === 'derived' ? ' · re-edit' : ''}`), infoRow('App', `v${c.appVersion}`));
+    info.replaceChildren(rows);
+
+    const buttons: (HTMLButtonElement | null)[] = [
+      action(ICONS.share, 'Share', async () => {
+        const f = await outputFile(c);
+        if (!f) return;
+        const r = await shareFiles([f]);
+        if (r === 'downloaded') toast('Saved to Downloads');
+      }),
+      action(ICONS.download, 'Save', async () => {
+        const f = await outputFile(c);
+        if (f) {
+          downloadBlob(f, f.name);
+          toast('Saved to Downloads');
+        }
+      }),
+      action(ICONS.edit, 'Re-edit', async () => {
+        const blob = (await s.store.blob(c.originalKey)) ?? (await s.store.blob(c.outputKey));
+        if (!blob) return;
+        if (!c.originalKey) toast('No original kept. Editing the rendered image.');
+        app.navigate({
+          name: 'editor',
+          input: { blob, source: 'derived', parent: c, lensId: c.lensId, params: c.params, seed: c.seed },
+        });
+      }),
+      known && lens.seeded && c.originalKey
+        ? action(ICONS.dice, 'New seed', async () => {
+            const blob = await s.store.blob(c.originalKey);
+            if (!blob) return;
+            toast('Rendering with a new seed…');
+            try {
+              const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+              const next = await processAndSave(s, {
+                bitmap,
+                originalBlob: blob,
+                lens,
+                params: sanitizeParams(lens.params, c.params),
+                seed: randomSeed(),
+                source: 'derived',
+                parentId: c.id,
+                ...(c.captureMethod ? { method: c.captureMethod } : {}),
+                ...(c.geo ? { geo: c.geo } : {}),
+              });
+              app.replace({ name: 'detail', id: next.id });
+            } catch (e) {
+              toast(`Render failed: ${errorMessage(e)}`);
+            }
+          })
+        : null,
+      action(
+        ICONS.trash,
+        'Delete',
+        async () => {
+          if (!(await confirmDialog('Delete this photo? This can’t be undone.', 'Delete', true))) return;
+          await s.store.delete(c.id);
+          toast('Deleted');
+          app.back();
+        },
+        'danger',
+      ),
+    ];
+    actions.replaceChildren(...buttons.filter((b): b is HTMLButtonElement => b !== null));
+  }
+
+  // Hold to compare with the original
+  let holdTimer = 0;
+  view.addEventListener('pointerdown', () => {
+    if (!originalUrl) return;
+    holdTimer = window.setTimeout(() => {
+      img.src = originalUrl;
+      compareBadge.hidden = false;
+    }, 180);
+  });
+  const release = () => {
+    clearTimeout(holdTimer);
+    if (!compareBadge.hidden) {
+      img.src = outputUrl;
+      compareBadge.hidden = true;
+    }
+  };
+  view.addEventListener('pointerup', release);
+  view.addEventListener('pointercancel', release);
+  view.addEventListener('pointerleave', release);
+  view.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  return {
+    el,
+    mount() {
+      void load();
+    },
+    unmount() {
+      for (const u of urls) URL.revokeObjectURL(u);
+    },
+  };
+}

@@ -3,7 +3,7 @@
 **Owner:** Mark
 **Version:** 1.0 (October 1, 2026)
 **Status:** Ready to build. M1 starts now; later milestones ship during a 3-day photography trip in the San Juan Mountains, Colorado.
-**Builder:** Codex Cloud, directed from a phone. Read `AGENTS.md` for working rules.
+**Builder:** a coding agent (Claude Code), directed from a phone. Read `AGENTS.md` for working rules.
 
 ---
 
@@ -13,7 +13,7 @@ Tremuloides (after *Populus tremuloides*, the quaking aspen) is an offline-first
 
 The app is used in the field: on mountain roads, at trailheads, in aspen groves, often with no cell signal, in bright sun, with cold hands. It must be fast to open, reliable offline, and easy to use one-handed.
 
-Development happens in short increments. Each Codex task delivers one milestone or one lens as a pull request. Mark merges the PR on his phone, GitHub Pages deploys it, and the installed PWA picks up the update the next time he has signal.
+Development happens in short increments. Each agent task delivers one milestone or one lens as a pull request. Mark merges the PR on his phone, GitHub Pages deploys it, and the installed PWA picks up the update the next time he has signal.
 
 ## 2. Goals and non-goals
 
@@ -38,7 +38,7 @@ Development happens in short increments. Each Codex task delivers one milestone 
 - **Rendering:** WebGL2 for per-pixel work. Query `MAX_TEXTURE_SIZE` and adapt; check for float render targets (`EXT_color_buffer_float`) and fall back if they're missing.
 - **CPU-heavy work** (k-means, contour tracing, particle setup, audio rendering) runs in Web Workers.
 - **Connectivity:** assume none in the field. Updates happen opportunistically on Wi-Fi or in town.
-- **Build verification:** Codex Cloud can't run a camera or (probably) a GPU browser. Correctness has to come from pure, unit-tested modules, a synthetic test-pattern source, and in-app diagnostics that Mark can copy into a bug report.
+- **Build verification:** the build agent can't run a real camera, and may not have a GPU browser. Correctness has to come from pure, unit-tested modules, a synthetic test-pattern source, and in-app diagnostics that Mark can copy into a bug report.
 
 ## 4. Tech stack (decisions made; don't revisit without cause)
 
@@ -274,7 +274,7 @@ Store blobs and metadata in IndexedDB. Keeping originals is **on by default**. T
   - service worker state,
   - current lens and preview resolution,
   - recent errors.
-- **Copy diagnostics** copies a compact JSON report to the clipboard so Mark can paste it into a Codex task.
+- **Copy diagnostics** copies a compact JSON report to the clipboard so Mark can paste it into an agent task.
 - **FPS overlay** toggle for the viewfinder.
 
 ## 11. Export and sharing
@@ -494,5 +494,5 @@ Turns the skyline of the photo into music.
 
 - Target device: a recent Android phone with current Chrome. If camera APIs behave differently on Mark's device, Diagnostics should make that visible.
 - GitHub Pages is served from a public repository (or private, on GitHub Pro).
-- Codex Cloud can't test the camera or GPU. Real-device testing happens on Mark's phone, guided by `docs/TESTING.md`.
+- The build agent can't test the real camera or the phone's GPU. Real-device testing happens on Mark's phone, guided by `docs/TESTING.md`.
 - Mark will tune lens defaults from field use. Expect follow-up "tuning" PRs that change defaults and bump lens `version`.
