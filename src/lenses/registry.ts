@@ -2,10 +2,11 @@ import { originalLens } from './original';
 import { inkWashLens } from './ink-wash';
 import { posterizeLens } from './posterize';
 import { quakeLens } from './quake';
+import { stainedGlassLens } from './stained-glass';
 import type { Lens } from './types';
 
 /** All lenses, in picker order. Add new lenses here (one line each). */
-export const LENSES: readonly Lens[] = [originalLens, inkWashLens, quakeLens, posterizeLens];
+export const LENSES: readonly Lens[] = [originalLens, inkWashLens, quakeLens, stainedGlassLens, posterizeLens];
 
 export const DEFAULT_LENS_ID = 'ink-wash';
 
