@@ -8,7 +8,7 @@ Paste these into a Claude session that has access to this repo. Each prompt prod
 
 Shipped: the PWA shell, offline/update flow, camera, the Original and Posterize lenses, gallery, editor, settings, and diagnostics.
 
-## 2. Ink & Wash (M2): next
+## 2. Ink & Wash (M2): done in v0.2.0
 
 ```
 Read AGENTS.md and PRD.md. Implement Milestone M2: the Ink & Wash lens (src/lenses/ink-wash), as specified in PRD §14 M2, and make it the default lens.

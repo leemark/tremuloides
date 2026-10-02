@@ -21,7 +21,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keepScreenOn: true,
   captureSource: 'auto',
   fpsOverlay: false,
-  currentLens: 'posterize',
+  currentLens: 'ink-wash',
 };
 
 /** Minimal synchronous key/value store (localStorage), safe when storage is unavailable. */
