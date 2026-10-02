@@ -1113,3 +1113,103 @@ select {
   transform: scale(0.55);
   border-radius: 8px;
 }
+
+/* ---------- Field Log ---------- */
+
+.fl-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px calc(var(--safe-right) + 14px) 20px calc(var(--safe-left) + 14px);
+}
+
+.fl-stats {
+  margin: 4px 0 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.fl-progress {
+  margin: 0 0 10px;
+  color: var(--gold);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.fl-tabs {
+  margin-bottom: 8px;
+}
+
+.fl-row {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 6px 0;
+  text-align: left;
+}
+
+.fl-stripe {
+  display: flex;
+  height: 30px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.fl-stripe.pending {
+  background: repeating-linear-gradient(45deg, var(--surface-2) 0 8px, var(--surface) 8px 16px);
+}
+
+.fl-meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.fl-plot {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  margin-top: 6px;
+}
+
+.fl-empty {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.fl-actions {
+  flex: none;
+  display: flex;
+  padding: 10px calc(var(--safe-right) + 16px) calc(var(--safe-bottom) + 12px) calc(var(--safe-left) + 16px);
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.fl-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 4px 0 6px;
+}
+
+.fl-poster {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+}
+
+.fl-poster .segmented {
+  width: 100%;
+}
+
+.fl-poster-preview {
+  width: 200px;
+  height: 300px;
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+}

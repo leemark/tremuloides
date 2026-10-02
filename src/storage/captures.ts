@@ -1,6 +1,6 @@
 import type { IDBPDatabase } from 'idb';
 import { getDB, type TremDB } from './db';
-import type { Capture, GeoTag } from './types';
+import type { Capture, FieldLogData, GeoTag } from './types';
 import type { LogEntry } from '../diagnostics/log';
 
 export interface NewCaptureBlobs {
@@ -65,6 +65,14 @@ export class CaptureStore {
     const tx = db.transaction('captures', 'readwrite');
     const c = await tx.store.get(id);
     if (c) await tx.store.put({ ...c, geo });
+    await tx.done;
+  }
+
+  async setFieldlog(id: string, fieldlog: FieldLogData): Promise<void> {
+    const db = await this.db();
+    const tx = db.transaction('captures', 'readwrite');
+    const c = await tx.store.get(id);
+    if (c) await tx.store.put({ ...c, fieldlog });
     await tx.done;
   }
 

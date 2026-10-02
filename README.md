@@ -14,7 +14,7 @@ Built for field use. Once installed, it works with no connection at all. When yo
 | Quake | Time displacement (Rows, Columns, Radial, Luma) and slit-scan from live video |
 | Posterize | Flat bands of lightness, colors kept |
 
-More are planned in [PRD.md](PRD.md) §14: Field Log, Stained Glass, Flow Painter, Ridgeline Score, and Topo.
+More are planned in [PRD.md](PRD.md) §14: Stained Glass, Flow Painter, Ridgeline Score, and Topo.
 
 ## Using it
 - **Shutter** takes a full-resolution photo through the current lens.
@@ -22,6 +22,7 @@ More are planned in [PRD.md](PRD.md) §14: Field Log, Stained Glass, Flow Painte
 - **Tap the lens name** to adjust its settings. Settings are remembered per lens.
 - **Import** applies a lens to a photo that's already on your phone.
 - In the **Gallery** you can share, save, re-edit (originals are kept), or delete.
+- **Field Log** (Gallery → chart icon) is a color diary of the trip: palette stripes, an elevation chart, a map, and an exportable chromatograph poster.
 - **Settings** shows the version, offline status, the update check, storage, and Diagnostics (with *Copy diagnostics* for bug reports).
 
 ## Development

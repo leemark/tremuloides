@@ -19,7 +19,7 @@ export function getPosition(): Promise<GeoTag | null> {
         logEvent('info', 'geo', `Location unavailable: ${err.message || err.code}`);
         resolve(null);
       },
-      { enableHighAccuracy: true, maximumAge: 300_000, timeout: 15_000 },
+      { enableHighAccuracy: true, maximumAge: 30_000, timeout: 15_000 },
     );
   });
 }

@@ -255,7 +255,7 @@ Store blobs and metadata in IndexedDB. Keeping originals is **on by default**. T
 4. **Decode** with `createImageBitmap(blob, { imageOrientation: 'from-image' })`. Stills must appear upright in portrait and landscape; record orientation details in diagnostics.
 5. **Render size.** Long edge = min(source long edge, Max render size setting, `MAX_TEXTURE_SIZE`). Full-resolution tiled rendering is in the backlog.
 6. **Encode** with `canvas.toBlob` or `OffscreenCanvas.convertToBlob`. Generate a thumbnail and store everything.
-7. **Location.** `navigator.geolocation.getCurrentPosition({ enableHighAccuracy: true, maximumAge: 300000, timeout: 15000 })`. GPS works without cell service. **Never block capture on location:** attach it to the record when it resolves.
+7. **Location.** `navigator.geolocation.getCurrentPosition({ enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 })`. GPS works without cell service. **Never block capture on location:** attach it to the record when it resolves.
 8. **Import.** Use `<input type="file" accept="image/*">`. It goes through the same decode → render → store path, which also handles photos copied over from a dedicated camera.
 9. **Test-pattern source.** When no camera is available (desktop, headless, permission denied) or the URL has `?demo=1`, use a procedural animated scene as the input stream: gradient sky, a jagged mountain silhouette, dark conifers, and vertical aspen trunks with gold leaves that flicker. This is used for development and as a fallback.
 

@@ -15,7 +15,7 @@ export function createGallery(app: App): Screen {
   const grid = h('div', { class: 'gallery-grid' });
   const empty = h('div', { class: 'empty-state', hidden: true }, h('p', { text: 'No photos yet.' }), h('p', { class: 'muted', text: 'Captures and imports appear here.' }));
   const selectBtn = iconButton(ICONS.select, 'Select photos', () => toggleSelect());
-  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: 'Gallery' }), selectBtn);
+  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: 'Gallery' }), iconButton(ICONS.log, 'Field Log', () => app.navigate({ name: 'fieldlog' })), selectBtn);
   const shareSelected = h('button', { class: 'btn btn-primary', text: 'Share', onclick: () => void shareSelection() });
   const selectBar = h(
     'div',

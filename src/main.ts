@@ -72,6 +72,12 @@ if (services.settings.flag('defaultLens') !== 'ink-wash') {
 }
 services.diag.lensId = services.settings.get().currentLens;
 
+// ---------- Field Log: analyse new and older captures in the background ----------
+setTimeout(() => void services.fieldlog.run(), 1500);
+services.queue.onChange((pending) => {
+  if (pending === 0) void services.fieldlog.run();
+});
+
 // ---------- Start ----------
 const root = document.getElementById('app');
 if (root) new App(root, services).start();

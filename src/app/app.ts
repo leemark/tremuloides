@@ -7,6 +7,7 @@ import { createGallery } from './screens/gallery';
 import { createDetail } from './screens/detail';
 import { createEditor } from './screens/editor';
 import { createSettings } from './screens/settings';
+import { createFieldLog } from './screens/fieldlog';
 
 export interface EditorInput {
   blob: Blob;
@@ -22,7 +23,8 @@ export type Route =
   | { name: 'gallery' }
   | { name: 'detail'; id: string }
   | { name: 'editor'; input: EditorInput }
-  | { name: 'settings' };
+  | { name: 'settings' }
+  | { name: 'fieldlog' };
 
 export interface Screen {
   el: HTMLElement;
@@ -102,6 +104,8 @@ export class App {
         return createEditor(this, route.input);
       case 'settings':
         return createSettings(this);
+      case 'fieldlog':
+        return createFieldLog(this);
     }
   }
 }
