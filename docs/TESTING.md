@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.4.0: Field Log
+1. Gallery → **chart icon** (Field Log). Older photos are analyzed in the background ("Analyzing colors… N to go"), then each photo shows as a palette stripe.
+2. The header line shows photos, days, the elevation range (ft) and the % autumn color. Check that golden aspen shots have a higher % warm than sky or spruce shots.
+3. **Elevation** tab: dots over time at the right heights. **Map** tab: your route, north up. Photos without GPS are counted, not shown.
+4. Pencil icon: rename the trip and set start/end dates. The list updates.
+5. **Make chromatograph poster** → try Time, Elevation, Rings and Grid, plus New seed → **Export PNG** → share or save it. Expect a few seconds for the 4800×7200 file.
+6. Everything above also works in airplane mode.
+
 ## v0.3.0: Quake
 1. Pick **Quake** (lens picker, or swipe). Point it at aspens moving in the wind. Leaves should smear and flow while the trunks stay sharp (Luma mode).
 2. Tap the shutter and **hold still for about a second** ("Recording… %"). The photo appears in the Gallery.

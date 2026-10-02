@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.4.0 (2026-10-02)
+- New Field Log (Gallery → chart icon): a color diary of your trip, built automatically from every photo
+- Timeline of palettes, elevation chart and a map of where you shot, all offline
+- Chromatograph: export a 4800 × 7200 print poster of your trip's colors (Time, Elevation, Rings or Grid)
+- Location is refreshed more often, so photos taken while driving get accurate elevation
+
 ## v0.3.0 (2026-10-01)
 - New Quake lens: time-displacement that smears trembling aspen leaves into flowing gold
 - Modes: Rows, Columns, Radial, Luma (bright parts lag) and Slit-scan

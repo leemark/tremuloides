@@ -4,6 +4,7 @@ import { SettingsStore } from '../storage/settings';
 import { PwaManager } from '../pwa/pwa';
 import { Busy } from './busy';
 import { CaptureQueue } from './queue';
+import { FieldLogService } from '../fieldlog/service';
 import { logEvent, errorMessage } from '../diagnostics/log';
 
 export interface DiagState {
@@ -21,6 +22,7 @@ export interface Services {
   pwa: PwaManager;
   busy: Busy;
   queue: CaptureQueue;
+  fieldlog: FieldLogService;
   diag: DiagState;
 }
 
@@ -34,10 +36,12 @@ export function createServices(): Services {
     rendererError = errorMessage(e);
     logEvent('error', 'gl', 'Renderer unavailable', e);
   }
+  const store = new CaptureStore();
   return {
     renderer,
     rendererError,
-    store: new CaptureStore(),
+    store,
+    fieldlog: new FieldLogService(store),
     settings,
     pwa: new PwaManager(settings),
     busy: new Busy(),
