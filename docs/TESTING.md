@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.5.0: Stained Glass
+1. Pick **Stained Glass**. Panes should be small along tree lines and the ridge, larger in open sky, and re-arrange gently (about twice a second) as you move.
+2. Lens settings → raise and lower **Cells** and **Edge attraction**; change **Lead width** and **Lead color**; toggle **Glass texture**; slide **Glow**.
+3. Turn on **Freeze panes**, frame the shot, and take it. The saved photo should have the same pane layout as the viewfinder.
+4. **New seed** (lens settings, or on a saved photo) reshuffles the panes.
+5. Import a photo and apply Stained Glass. Check the lead lines are crisp at full size (pinch-zoom in Google Photos).
+6. FPS overlay: the preview should hold about 24 fps or more. If not, lower Cells and note the FPS.
+
 ## v0.4.0: Field Log
 1. Gallery → **chart icon** (Field Log). Older photos are analyzed in the background ("Analyzing colors… N to go"), then each photo shows as a palette stripe.
 2. The header line shows photos, days, the elevation range (ft) and the % autumn color. Check that golden aspen shots have a higher % warm than sky or spruce shots.

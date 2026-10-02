@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.0 (2026-10-02)
+- New Stained Glass lens: leaded panes of light, smaller and denser along edges and detail
+- Adjust pane count, edge attraction, lead width and color, glow and glass texture
+- Freeze panes keeps a layout you like while you frame the shot; New seed reshuffles it
+
 ## v0.4.0 (2026-10-02)
 - New Field Log (Gallery → chart icon): a color diary of your trip, built automatically from every photo
 - Timeline of palettes, elevation chart and a map of where you shot, all offline
