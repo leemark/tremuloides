@@ -1086,3 +1086,30 @@ select {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------- Temporal recording (Quake) ---------- */
+
+.rec-indicator {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 150px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(14, 15, 17, 0.85);
+  color: #ff7a66;
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.shutter.recording {
+  border-color: #ff7a66;
+}
+
+.shutter.recording .shutter-inner {
+  background: #e0533d;
+  transform: scale(0.55);
+  border-radius: 8px;
+}

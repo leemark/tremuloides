@@ -18,10 +18,12 @@ Tune the defaults for autumn aspen landscapes: golden foliage, dark conifers, bl
 Run npm run check, update docs/TESTING.md and CHANGELOG.md, bump the version, and open a PR in the AGENTS.md format.
 ```
 
+## M3 Quake: done in v0.3.0
+
 ## 3. Later milestones (fill in the brackets)
 
 ```
-Read AGENTS.md and PRD.md. Implement Milestone [M3 Quake / M4 Field Log / M5 Stained Glass / M6 Flow Painter / M7 Ridgeline Score / M8 Topo] as specified in PRD §14.
+Read AGENTS.md and PRD.md. Implement Milestone [M4 Field Log / M5 Stained Glass / M6 Flow Painter / M7 Ridgeline Score / M8 Topo] as specified in PRD §14.
 
 Field notes from testing the current version (v[x.y.z]):
 - [what's working, what isn't, what to prioritize]

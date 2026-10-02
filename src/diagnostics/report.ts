@@ -41,6 +41,7 @@ export async function buildReport(s: Services): Promise<Record<string, unknown>>
       scale: Number(s.diag.previewScale.toFixed(2)),
       fps: Number(s.diag.fps.toFixed(1)),
     },
+    temporal: s.renderer?.temporalInfo() ?? null,
     storage: { ...storage, captures },
     serviceWorker: s.pwa.serviceWorkerState,
     offlineReady: s.pwa.offlineReady,

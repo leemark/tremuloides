@@ -1,6 +1,6 @@
 import type { App, EditorInput, Screen } from '../app';
 import { h, ICONS, iconButton, toast } from '../ui';
-import { LENSES } from '../../lenses/registry';
+import { DEFAULT_LENS_ID, STILL_LENSES } from '../../lenses/registry';
 import { defaultParams } from '../../lenses/params';
 import { lensStateFor, processAndSave } from '../capture';
 import { paramControls } from '../params-ui';
@@ -13,7 +13,9 @@ import type { Lens, Params } from '../../lenses/types';
 export function createEditor(app: App, input: EditorInput): Screen {
   const s = app.s;
   const renderer = s.renderer;
-  let { lens, params } = lensStateFor(s, input.lensId ?? s.settings.get().currentLens, input.params);
+  const requested = input.lensId ?? s.settings.get().currentLens;
+  const stillOk = STILL_LENSES.some((l) => l.id === requested);
+  let { lens, params } = lensStateFor(s, stillOk ? requested : DEFAULT_LENS_ID, stillOk ? input.params : undefined);
   let seed = input.seed ?? randomSeed();
   let preview: ImageBitmap | null = null;
   let comparing = false;
@@ -50,7 +52,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
 
   function buildLensChips() {
     lensRow.replaceChildren(
-      ...LENSES.map((l) =>
+      ...STILL_LENSES.map((l) =>
         h('button', {
           class: `chip ${l.id === lens.id ? 'on' : ''}`,
           role: 'radio',

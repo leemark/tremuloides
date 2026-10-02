@@ -1,8 +1,8 @@
 import type { Services } from './services';
-import { decodeForRender, maxRenderEdge, renderToImage } from './pipeline';
+import { canvasToBlob, decodeForRender, makeThumb, maxRenderEdge, renderToImage } from './pipeline';
 import { getLens } from '../lenses/registry';
 import { sanitizeParams } from '../lenses/params';
-import type { Lens, Params } from '../lenses/types';
+import type { CaptureResult, Lens, Params } from '../lenses/types';
 import type { Capture, CaptureMethod, CaptureSource, GeoTag } from '../storage/types';
 import { newId } from '../util/ids';
 import { APP_VERSION } from '../version';
@@ -84,6 +84,58 @@ export async function processAndSave(s: Services, o: ProcessOptions): Promise<Ca
         }
       });
     }
+    return capture;
+  });
+}
+
+function imageDataCanvas(img: ImageData): OffscreenCanvas | HTMLCanvasElement {
+  let c: OffscreenCanvas | HTMLCanvasElement;
+  if (typeof OffscreenCanvas !== 'undefined') c = new OffscreenCanvas(img.width, img.height);
+  else {
+    c = document.createElement('canvas');
+    c.width = img.width;
+    c.height = img.height;
+  }
+  const ctx = c.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+  if (!ctx) throw new Error('2D canvas unavailable');
+  ctx.putImageData(img, 0, 0);
+  return c;
+}
+
+/** Saves an already-rendered temporal capture (burst / slit-scan). */
+export async function saveCaptureResult(
+  s: Services,
+  o: { result: CaptureResult; lens: Lens; params: Params; seed: number; createdAt: string; geo?: Promise<GeoTag | null> | null },
+): Promise<Capture> {
+  const settings = s.settings.get();
+  return s.busy.run(async () => {
+    const { image, original, method } = o.result;
+    const canvas = imageDataCanvas(image);
+    const type = settings.exportFormat === 'png' ? 'image/png' : 'image/jpeg';
+    const output = await canvasToBlob(canvas, type, settings.exportFormat === 'png' ? undefined : 0.92);
+    const thumb = await makeThumb(canvas, image.width, image.height);
+    const originalBlob = original && settings.keepOriginals ? await canvasToBlob(imageDataCanvas(original), 'image/jpeg', 0.95) : undefined;
+    const id = newId();
+    const capture = await s.store.save(
+      {
+        id,
+        createdAt: o.createdAt,
+        source: 'camera',
+        outputType: type,
+        lensId: o.lens.id,
+        lensVersion: o.lens.version,
+        params: o.params,
+        seed: o.seed,
+        width: image.width,
+        height: image.height,
+        captureMethod: method,
+        appVersion: APP_VERSION,
+      },
+      { output, thumb, ...(originalBlob ? { original: originalBlob } : {}) },
+    );
+    void o.geo?.then(async (geo) => {
+      if (geo) await s.store.setGeo(id, geo).catch((e: unknown) => logEvent('warn', 'geo', 'Could not save location', e));
+    });
     return capture;
   });
 }

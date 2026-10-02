@@ -45,16 +45,31 @@ export interface LensMeta {
   params: ParamSpec[];
   /** Temporal lenses only (e.g. Quake, M3). */
   temporal?: { maxFrames: number; historyScale: number };
+  /** Shutter behaviour; defaults to 'still' (one photo through the lens). */
+  captureStyle?: (params: Params) => CaptureStyle;
 }
 
-/** Ring buffer of recent frames for temporal lenses (implemented in M3). */
+/** Ring buffer of recent frames for temporal lenses (see gl/history.ts). */
 export interface FrameHistory {
   readonly texture: WebGLTexture;
+  /** Capacity in frames. */
   readonly frames: number;
+  /** Frames filled so far (≤ frames). */
+  readonly count: number;
   readonly width: number;
   readonly height: number;
-  /** Layer index of the newest frame. */
+  /** Layer index of the newest frame (-1 when empty). */
   readonly head: number;
+}
+
+/** How the shutter behaves for a lens with the given params. */
+export type CaptureStyle = 'still' | 'burst' | 'toggle';
+
+export interface CaptureResult {
+  image: ImageData;
+  /** An unprocessed frame, kept as the "original" when available. */
+  original?: ImageData;
+  method: 'burst' | 'slit-scan';
 }
 
 export interface RenderRequest {
@@ -75,6 +90,14 @@ export interface RenderRequest {
 export interface LensInstance {
   render(req: RenderRequest, target: RenderTarget): void | Promise<void>;
   dispose(): void;
+  /** Temporal captures (burst / toggle styles): start recording from the live input. */
+  beginCapture?(params: Params, seed: number, sourceWidth: number, sourceHeight: number): void;
+  /** Feeds one new frame; returns progress 0–1 (1 = done for bursts, full for toggles). */
+  feedCapture?(input: WebGLTexture): number;
+  finishCapture?(): CaptureResult;
+  cancelCapture?(): void;
+  /** Diagnostics for the capture/history state. */
+  info?(): Record<string, unknown>;
 }
 
 export interface Lens extends LensMeta {

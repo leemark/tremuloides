@@ -5,7 +5,7 @@ import { AdaptiveScale } from '../../gl/adaptive';
 import { LENSES, adjacentLens, getLens } from '../../lenses/registry';
 import { defaultParams } from '../../lenses/params';
 import type { Lens, Params } from '../../lenses/types';
-import { currentLensState, processAndSave } from '../capture';
+import { currentLensState, processAndSave, saveCaptureResult } from '../capture';
 import { paramControls } from '../params-ui';
 import { getPosition } from '../geo';
 import { randomSeed } from '../../util/prng';
@@ -27,6 +27,17 @@ export function createViewfinder(app: App): Screen {
   let dirty = true;
   let comparing = false;
   let taking = false;
+  /** Temporal recording in progress (Quake bursts and slit-scans). */
+  let recording: {
+    lens: Lens;
+    params: Params;
+    seed: number;
+    style: 'burst' | 'toggle';
+    createdAt: string;
+    geo: ReturnType<typeof getPosition> | null;
+    started: number;
+    endBusy: () => void;
+  } | null = null;
   let wakeLock: WakeLockSentinelLike | null = null;
   let sheet: SheetHandle | null = null;
   let thumbUrl: string | null = null;
@@ -67,9 +78,10 @@ export function createViewfinder(app: App): Screen {
     iconButton(ICONS.import, 'Import a photo', () => fileInput.click()),
   );
   const saving = h('div', { class: 'saving', hidden: true, role: 'status' });
+  const recordingEl = h('div', { class: 'rec-indicator', hidden: true, role: 'status' });
   const bottombar = h('footer', { class: 'bottombar' }, thumb, shutter, side, fileInput);
 
-  const el = h('div', { class: 'screen viewfinder' }, stage, topbar, bottombar, saving);
+  const el = h('div', { class: 'screen viewfinder' }, stage, topbar, bottombar, saving, recordingEl);
 
   function renderLensLabel() {
     lensName.textContent = lens.name;
@@ -79,6 +91,7 @@ export function createViewfinder(app: App): Screen {
   }
 
   function setLens(next: Lens) {
+    cancelRecording();
     lens = next;
     s.settings.set('currentLens', lens.id);
     ({ params } = currentLensState(s));
@@ -89,6 +102,7 @@ export function createViewfinder(app: App): Screen {
   }
 
   function setParams(next: Params) {
+    cancelRecording();
     params = next;
     s.settings.setLensParams(lens.id, params);
     dirty = true;
@@ -237,6 +251,7 @@ export function createViewfinder(app: App): Screen {
       if (fresh) renderer.setInput(source.element, source.width, source.height);
       renderer.drawPreview({ lens, params, seed, fit: 'cover', showOriginal: comparing, scale: adaptive.scale });
       dirty = false;
+      if (recording && fresh) feedRecording(now);
     } catch (e) {
       logEvent('error', 'lens', `Preview failed for ${lens.id}`, e);
       if (lens.id !== 'original') {
@@ -266,6 +281,7 @@ export function createViewfinder(app: App): Screen {
   }
 
   function pause() {
+    cancelRecording();
     running = false;
     cancelAnimationFrame(raf);
     stopSource();
@@ -290,9 +306,100 @@ export function createViewfinder(app: App): Screen {
   }
 
   // ---------- Capture ----------
+  // ---------- Temporal recording (burst / toggle) ----------
+  function startRecording(style: 'burst' | 'toggle') {
+    if (!renderer || !source) return;
+    try {
+      renderer.beginCapture(lens, params, seed);
+    } catch (e) {
+      logEvent('error', 'capture', 'Could not start recording', e);
+      toast(`Couldn’t start recording: ${errorMessage(e)}`);
+      return;
+    }
+    navigator.vibrate?.(12);
+    recording = {
+      lens,
+      params: { ...params },
+      seed,
+      style,
+      createdAt: new Date().toISOString(),
+      geo: s.settings.get().locationTagging ? getPosition() : null,
+      started: performance.now(),
+      endBusy: s.busy.begin(),
+    };
+    shutter.classList.add('recording');
+    shutter.setAttribute('aria-label', style === 'toggle' ? 'Stop recording' : 'Recording');
+    recordingEl.hidden = false;
+    recordingEl.textContent = style === 'toggle' ? 'Recording · tap to stop' : 'Recording… hold still';
+  }
+
+  function feedRecording(now: number) {
+    if (!renderer || !recording) return;
+    let progress: number | null;
+    try {
+      progress = renderer.feedCapture(recording.lens);
+    } catch (e) {
+      logEvent('error', 'capture', 'Recording failed', e);
+      toast(`Recording failed: ${errorMessage(e)}`);
+      cancelRecording();
+      return;
+    }
+    if (progress === null) return;
+    const secs = ((now - recording.started) / 1000).toFixed(1);
+    recordingEl.textContent =
+      recording.style === 'toggle' ? `● ${secs} s · tap to stop` : `Recording… ${Math.round(progress * 100)}%`;
+    if (progress >= 1) void finishRecording();
+  }
+
+  async function finishRecording() {
+    if (!renderer || !recording) return;
+    const rec = recording;
+    recording = null;
+    resetRecordingUi();
+    try {
+      const result = renderer.finishCapture(rec.lens);
+      navigator.vibrate?.([10, 40, 10]);
+      void s.queue
+        .add(async () => {
+          await saveCaptureResult(s, { result, lens: rec.lens, params: rec.params, seed: rec.seed, createdAt: rec.createdAt, geo: rec.geo });
+          await refreshThumb();
+        })
+        .catch((e: unknown) => toast(`Couldn’t save: ${errorMessage(e)}`));
+    } catch (e) {
+      logEvent('error', 'capture', 'Finishing the recording failed', e);
+      toast(`Recording failed: ${errorMessage(e)}`);
+    } finally {
+      rec.endBusy();
+    }
+  }
+
+  function cancelRecording() {
+    if (!recording) return;
+    const rec = recording;
+    recording = null;
+    renderer?.cancelCapture(rec.lens);
+    rec.endBusy();
+    resetRecordingUi();
+  }
+
+  function resetRecordingUi() {
+    shutter.classList.remove('recording');
+    shutter.setAttribute('aria-label', 'Take photo');
+    recordingEl.hidden = true;
+  }
+
   async function capture() {
     if (!renderer) {
       toast('This device can’t render lenses (WebGL2 unavailable).');
+      return;
+    }
+    if (recording) {
+      if (recording.style === 'toggle') void finishRecording();
+      return; // bursts finish on their own
+    }
+    const style = lens.captureStyle?.(params) ?? 'still';
+    if (style !== 'still') {
+      startRecording(style);
       return;
     }
     if (!source || taking) return;

@@ -79,7 +79,7 @@ export function createDetail(app: App, id: string): Screen {
       const alt = c.geo.altitude !== null ? ` · ${Math.round(metersToFeet(c.geo.altitude)).toLocaleString()} ft (${Math.round(c.geo.altitude)} m)` : '';
       rows.append(infoRow('Location', `${c.geo.lat.toFixed(5)}, ${c.geo.lon.toFixed(5)}${alt}`));
     }
-    const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene' }[c.captureMethod ?? 'file'];
+    const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene', burst: 'Burst (Quake)', 'slit-scan': 'Slit-scan (Quake)' }[c.captureMethod ?? 'file'];
     rows.append(infoRow('Source', `${method}${c.source === 'derived' ? ' · re-edit' : ''}`), infoRow('App', `v${c.appVersion}`));
     info.replaceChildren(rows);
 

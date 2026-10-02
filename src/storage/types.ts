@@ -16,7 +16,7 @@ export interface FieldLogData {
 }
 
 export type CaptureSource = 'camera' | 'import' | 'derived';
-export type CaptureMethod = 'imagecapture' | 'video-frame' | 'file' | 'test-pattern';
+export type CaptureMethod = 'imagecapture' | 'video-frame' | 'file' | 'test-pattern' | 'burst' | 'slit-scan';
 
 export interface Capture {
   /** Sortable by time (ULID-style). */

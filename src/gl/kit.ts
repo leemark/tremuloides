@@ -84,6 +84,10 @@ export interface DrawOptions {
   ints?: Record<string, number>;
   /** vec3 arrays, e.g. palettes: flat [r0, g0, b0, r1, …]. */
   vec3Arrays?: Record<string, Float32Array>;
+  /** 2D-array textures (e.g. frame history), bound after `textures`. */
+  arrayTextures?: Record<string, WebGLTexture>;
+  /** Draw into a sub-rectangle [x, y, w, h] (pixels, GL origin) instead of the whole target. */
+  viewport?: readonly [number, number, number, number];
 }
 
 /** 'rgba16f' falls back to 'rgba8' when the GPU can't render to half floats. */
@@ -177,12 +181,19 @@ export class GLKit {
   draw(program: Program, target: RenderTarget, opts: DrawOptions = {}): void {
     const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
-    gl.viewport(0, 0, target.width, target.height);
+    if (opts.viewport) gl.viewport(opts.viewport[0], opts.viewport[1], opts.viewport[2], opts.viewport[3]);
+    else gl.viewport(0, 0, target.width, target.height);
     gl.useProgram(program.handle);
     let unit = 0;
     for (const [name, tex] of Object.entries(opts.textures ?? {})) {
       gl.activeTexture(gl.TEXTURE0 + unit);
       gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniform1i(program.loc(name), unit);
+      unit++;
+    }
+    for (const [name, tex] of Object.entries(opts.arrayTextures ?? {})) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D_ARRAY, tex);
       gl.uniform1i(program.loc(name), unit);
       unit++;
     }
@@ -211,12 +222,13 @@ export class GLKit {
    * Reads a target back as top-down RGBA pixels. Targets hold image-space content
    * (row 0 = image top), which is exactly the order readPixels returns.
    */
-  readPixels(target: RenderTarget): Uint8ClampedArray<ArrayBuffer> {
+  readPixels(target: RenderTarget, x = 0, width = target.width): Uint8ClampedArray<ArrayBuffer> {
     const gl = this.gl;
-    const { width: w, height: h } = target;
+    const w = width;
+    const h = target.height;
     const out = new Uint8ClampedArray(new ArrayBuffer(w * h * 4));
     gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, out);
+    gl.readPixels(x, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     return out;
   }
