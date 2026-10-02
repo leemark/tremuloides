@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.3.0: Quake
+1. Pick **Quake** (lens picker, or swipe). Point it at aspens moving in the wind. Leaves should smear and flow while the trunks stay sharp (Luma mode).
+2. Tap the shutter and **hold still for about a second** ("Recording… %"). The photo appears in the Gallery.
+3. Lens settings → try **Rows**, **Columns** and **Radial**, and change **Span**. Wave a hand through the frame to see the time offset.
+4. Mode → **Slit-scan**. Tap the shutter, **slowly pan** across a grove for 5–10 s (the viewfinder shows the strip growing), then tap again to stop. It also stops on its own when the strip is full.
+5. Leaving the viewfinder or switching lens mid-recording cancels it without a crash.
+6. Settings → Diagnostics → Copy diagnostics includes a `temporal` section (history size and frames).
+
 ## v0.2.0: Ink & Wash
 1. After updating, the viewfinder opens on **Ink & Wash**: painted look, dark ink outlines.
 2. Point at golden aspens against dark spruce or blue sky. Gold should stay gold, conifers dark, and sky smooth with no blotches.

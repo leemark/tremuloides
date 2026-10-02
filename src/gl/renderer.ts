@@ -1,7 +1,10 @@
 import { GLKit, Program, fragment, type RenderTarget } from './kit';
 import { fitScale, lensRenderSize, type FitMode } from './fit';
 import DISPLAY_FRAG from './shaders/display.frag.glsl?raw';
-import type { Lens, LensInstance, Params } from '../lenses/types';
+import COPY_FRAG from './shaders/copy.frag.glsl?raw';
+import { FrameHistoryBuffer } from './history';
+import { previewHistoryPlan } from '../lenses/quake/plan';
+import type { CaptureResult, Lens, LensInstance, Params } from '../lenses/types';
 import { logEvent } from '../diagnostics/log';
 
 export interface PreviewOptions {
@@ -34,6 +37,11 @@ export class Renderer {
   private gl: WebGL2RenderingContext;
   private kit!: GLKit;
   private display!: Program;
+  private copy!: Program;
+  private history: FrameHistoryBuffer | null = null;
+  private inputVersion = 0;
+  private pushedVersion = -1;
+  private fedVersion = -1;
   private instances = new Map<string, LensInstance>();
   private input: WebGLTexture | null = null;
   private inputW = 0;
@@ -64,6 +72,7 @@ export class Renderer {
       this.instances.clear();
       this.input = null;
       this.lensTarget = null;
+      this.history = null;
       logEvent('warn', 'gl', 'WebGL context lost');
     });
     this.canvas.addEventListener('webglcontextrestored', () => {
@@ -76,6 +85,7 @@ export class Renderer {
   private init(): void {
     this.kit = new GLKit(this.gl);
     this.display = this.kit.program(fragment(DISPLAY_FRAG), 'display');
+    this.copy = this.kit.program(fragment(COPY_FRAG), 'copy');
     this.input = this.kit.createTexture(0, 0);
     this.inputW = 0;
     this.inputH = 0;
@@ -122,6 +132,68 @@ export class Renderer {
     this.kit.upload(this.input, source);
     this.inputW = width;
     this.inputH = height;
+    this.inputVersion++;
+  }
+
+  /** Keeps the preview frame history for temporal lenses; frees it for others. */
+  private updateHistory(lens: Lens): FrameHistoryBuffer | undefined {
+    if (lens.kind !== 'temporal' || !lens.temporal || !this.input) {
+      this.dropHistory();
+      return undefined;
+    }
+    const plan = previewHistoryPlan(this.inputW, this.inputH, lens.temporal.historyScale, this.kit.maxTextureSize);
+    const frames = Math.min(plan.frames, lens.temporal.maxFrames);
+    const h = this.history;
+    if (!h || h.width !== plan.width || h.height !== plan.height || h.frames !== frames) {
+      this.dropHistory();
+      this.history = new FrameHistoryBuffer(this.kit, this.copy, plan.width, plan.height, frames);
+      this.pushedVersion = -1;
+    }
+    if (this.pushedVersion !== this.inputVersion) {
+      this.history?.push(this.input);
+      this.pushedVersion = this.inputVersion;
+    }
+    return this.history ?? undefined;
+  }
+
+  private dropHistory(): void {
+    this.history?.dispose();
+    this.history = null;
+  }
+
+  /** Starts a temporal capture (burst or slit-scan) from the live input. */
+  beginCapture(lens: Lens, params: Params, seed: number): void {
+    const inst = this.instance(lens);
+    if (!inst.beginCapture) throw new Error(`${lens.name} has no recording mode`);
+    inst.beginCapture(params, seed, this.inputW, this.inputH);
+    this.fedVersion = -1;
+  }
+
+  /** Feeds the newest input frame (once per frame). Returns progress, or null if no new frame. */
+  feedCapture(lens: Lens): number | null {
+    if (this.isLost || !this.input || this.fedVersion === this.inputVersion) return null;
+    this.fedVersion = this.inputVersion;
+    return this.instance(lens).feedCapture?.(this.input) ?? 1;
+  }
+
+  finishCapture(lens: Lens): CaptureResult {
+    const inst = this.instance(lens);
+    if (!inst.finishCapture) throw new Error(`${lens.name} has no recording mode`);
+    return inst.finishCapture();
+  }
+
+  cancelCapture(lens: Lens): void {
+    if (!this.isLost) this.instances.get(lens.id)?.cancelCapture?.();
+  }
+
+  temporalInfo(): Record<string, unknown> {
+    const h = this.history;
+    const lensInfo: Record<string, unknown> = {};
+    for (const [id, inst] of this.instances) if (inst.info) lensInfo[id] = inst.info();
+    return {
+      history: h ? { size: `${h.width}×${h.height}`, frames: `${h.count}/${h.frames}`, mb: Math.round(h.bytes / 1048576) } : null,
+      lenses: lensInfo,
+    };
   }
 
   /** Matches the canvas backing store to its CSS size (device pixels, capped at 2×). */
@@ -153,6 +225,7 @@ export class Renderer {
       );
       this.lensTarget = this.kit.ensureTarget(this.lensTarget, lw, lh);
       this.lastPreviewSize = [lw, lh];
+      const history = this.updateHistory(opts.lens);
       const result = this.instance(opts.lens).render(
         {
           input: this.input,
@@ -163,6 +236,7 @@ export class Renderer {
           params: opts.params,
           seed: opts.seed,
           quality: 'preview',
+          ...(history ? { history } : {}),
         },
         this.lensTarget,
       );

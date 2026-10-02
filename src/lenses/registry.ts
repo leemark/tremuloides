@@ -1,10 +1,11 @@
 import { originalLens } from './original';
 import { inkWashLens } from './ink-wash';
 import { posterizeLens } from './posterize';
+import { quakeLens } from './quake';
 import type { Lens } from './types';
 
 /** All lenses, in picker order. Add new lenses here (one line each). */
-export const LENSES: readonly Lens[] = [originalLens, inkWashLens, posterizeLens];
+export const LENSES: readonly Lens[] = [originalLens, inkWashLens, quakeLens, posterizeLens];
 
 export const DEFAULT_LENS_ID = 'ink-wash';
 
@@ -21,3 +22,6 @@ export function adjacentLens(id: string, delta: 1 | -1): Lens {
   const n = LENSES.length;
   return LENSES[(((i < 0 ? 0 : i) + delta) % n + n) % n] as Lens;
 }
+
+/** Lenses that can be applied to a still image (editor, re-edit). Temporal lenses need live video. */
+export const STILL_LENSES: readonly Lens[] = LENSES.filter((l) => l.kind !== 'temporal');
