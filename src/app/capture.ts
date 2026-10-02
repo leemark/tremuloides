@@ -1,0 +1,89 @@
+import type { Services } from './services';
+import { decodeForRender, maxRenderEdge, renderToImage } from './pipeline';
+import { getLens } from '../lenses/registry';
+import { sanitizeParams } from '../lenses/params';
+import type { Lens, Params } from '../lenses/types';
+import type { Capture, CaptureMethod, CaptureSource, GeoTag } from '../storage/types';
+import { newId } from '../util/ids';
+import { APP_VERSION } from '../version';
+import { logEvent } from '../diagnostics/log';
+
+export interface LensState {
+  lens: Lens;
+  params: Params;
+}
+
+/** The lens currently selected in the viewfinder, with its saved params. */
+export function currentLensState(s: Services): LensState {
+  const lens = getLens(s.settings.get().currentLens);
+  return { lens, params: sanitizeParams(lens.params, s.settings.lensParams(lens.id)) };
+}
+
+export function lensStateFor(s: Services, lensId: string, params?: Params): LensState {
+  const lens = getLens(lensId);
+  return { lens, params: sanitizeParams(lens.params, params ?? s.settings.lensParams(lens.id)) };
+}
+
+export interface ProcessOptions {
+  /** Decoded, upright source. Ownership passes to this function (it will be closed). */
+  bitmap: ImageBitmap;
+  originalBlob?: Blob;
+  lens: Lens;
+  params: Params;
+  seed: number;
+  source: CaptureSource;
+  method?: CaptureMethod;
+  parentId?: string;
+  createdAt?: string;
+  /** Resolved later; attached to the capture when it arrives. */
+  geo?: Promise<GeoTag | null> | GeoTag | null;
+}
+
+/** Full-resolution render + encode + save. Never blocks on location. */
+export async function processAndSave(s: Services, o: ProcessOptions): Promise<Capture> {
+  const renderer = s.renderer;
+  if (!renderer) throw new Error(s.rendererError ?? 'Renderer unavailable');
+  const settings = s.settings.get();
+  return s.busy.run(async () => {
+    const sized = await decodeForRender(o.bitmap, maxRenderEdge(settings, renderer.maxTextureSize));
+    let rendered;
+    try {
+      rendered = await renderToImage(renderer, sized, o.lens, o.params, o.seed, settings.exportFormat);
+    } finally {
+      sized.close();
+      o.bitmap.close();
+    }
+    const id = newId();
+    const capture = await s.store.save(
+      {
+        id,
+        createdAt: o.createdAt ?? new Date().toISOString(),
+        source: o.source,
+        ...(o.parentId ? { parentId: o.parentId } : {}),
+        outputType: rendered.type,
+        lensId: o.lens.id,
+        lensVersion: o.lens.version,
+        params: o.params,
+        seed: o.seed,
+        width: rendered.width,
+        height: rendered.height,
+        ...(o.method ? { captureMethod: o.method } : {}),
+        ...(o.geo && !(o.geo instanceof Promise) ? { geo: o.geo } : {}),
+        appVersion: APP_VERSION,
+      },
+      {
+        output: rendered.blob,
+        thumb: rendered.thumb,
+        ...(settings.keepOriginals && o.originalBlob ? { original: o.originalBlob } : {}),
+      },
+    );
+    if (o.geo instanceof Promise) {
+      void o.geo.then(async (geo) => {
+        if (geo) {
+          await s.store.setGeo(id, geo).catch((e: unknown) => logEvent('warn', 'geo', 'Could not save location', e));
+        }
+      });
+    }
+    return capture;
+  });
+}

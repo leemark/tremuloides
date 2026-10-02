@@ -1,6 +1,6 @@
 # AGENTS.md — Tremuloides
 
-Read `PRD.md` in full before starting any task. This file is the short operational version. If they conflict, `PRD.md` wins, and you should point out the conflict in your PR.
+Instructions for any coding agent working on this repo (Claude Code reads them via `CLAUDE.md`). Read `PRD.md` in full before starting any task. This file is the short operational version. If they conflict, `PRD.md` wins, and you should point out the conflict in your PR.
 
 ## Context
 - Tremuloides is an **offline-first camera PWA** with algorithmic photo "lenses": shaders, simulations, and classic image processing.
@@ -12,7 +12,7 @@ Read `PRD.md` in full before starting any task. This file is the short operation
 - Make reasonable decisions without asking. Record assumptions in the PR description.
 - **One milestone or one lens per PR.** Keep diffs focused; don't refactor unrelated code.
 - Never leave `main` broken. CI must pass.
-- **You can't see the UI or use a camera here.** Compensate:
+- **You may not be able to see the UI or use a camera.** If your environment has a headless browser, run the built app with `?demo=1` and check screenshots. Either way, compensate:
   - Keep logic in pure, unit-tested modules.
   - Use the procedural test-pattern source (`?demo=1`).
   - Make failures visible in the app through Diagnostics.
