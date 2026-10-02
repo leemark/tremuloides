@@ -10,9 +10,10 @@ Built for field use. Once installed, it works with no connection at all. When yo
 | Lens | What it does |
 |---|---|
 | Original | Plain photo, so you can re-edit it later with any lens |
+| Ink & Wash (default) | Painterly strokes (anisotropic Kuwahara), palette stylization, ink edges |
 | Posterize | Flat bands of lightness, colors kept |
 
-More are planned in [PRD.md](PRD.md) §14: Ink & Wash, Quake, Field Log, Stained Glass, Flow Painter, Ridgeline Score, and Topo.
+More are planned in [PRD.md](PRD.md) §14: Quake, Field Log, Stained Glass, Flow Painter, Ridgeline Score, and Topo.
 
 ## Using it
 - **Shutter** takes a full-resolution photo through the current lens.

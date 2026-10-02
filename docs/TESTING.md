@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.2.0: Ink & Wash
+1. After updating, the viewfinder opens on **Ink & Wash**: painted look, dark ink outlines.
+2. Point at golden aspens against dark spruce or blue sky. Gold should stay gold, conifers dark, and sky smooth with no blotches.
+3. Tap the lens name and try each **Palette** (Auto, San Juan, Gouache, Mono ink). Auto shifts gently as you pan; it shouldn't flicker.
+4. Raise **Brush size** and **Line amount**, then switch **Line style** to Flow. The preview updates live.
+5. Turn on the FPS overlay (Settings → Diagnostics). At Balanced it should stay around 24 fps or higher; if not, try **Quality → Fast**.
+6. Take a photo. Open it in the Gallery and compare it with what the preview showed: strokes and line weight should look the same, just sharper. Note how long Saving… takes.
+
 ## v0.1.0: Foundation
 
 ### Install and offline (do this before leaving coverage)

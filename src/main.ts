@@ -65,6 +65,13 @@ if (lastSeen && lastSeen !== APP_VERSION && WHATS_NEW && WHATS_NEW.version === A
 }
 services.settings.setFlag('lastSeenVersion', APP_VERSION);
 
+// ---------- One-time: Ink & Wash becomes the default lens (v0.2.0) ----------
+if (services.settings.flag('defaultLens') !== 'ink-wash') {
+  services.settings.set('currentLens', 'ink-wash');
+  services.settings.setFlag('defaultLens', 'ink-wash');
+}
+services.diag.lensId = services.settings.get().currentLens;
+
 // ---------- Start ----------
 const root = document.getElementById('app');
 if (root) new App(root, services).start();

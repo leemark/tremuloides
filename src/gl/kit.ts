@@ -74,19 +74,28 @@ export interface RenderTarget {
   tex: WebGLTexture | null;
   width: number;
   height: number;
+  format?: TargetFormat;
 }
 
 export interface DrawOptions {
   /** Texture units are assigned in insertion order. */
   textures?: Record<string, WebGLTexture>;
   uniforms?: Record<string, number | readonly number[]>;
+  ints?: Record<string, number>;
+  /** vec3 arrays, e.g. palettes: flat [r0, g0, b0, r1, …]. */
+  vec3Arrays?: Record<string, Float32Array>;
 }
+
+/** 'rgba16f' falls back to 'rgba8' when the GPU can't render to half floats. */
+export type TargetFormat = 'rgba8' | 'rgba16f';
 
 /** Small helper layer shared by all lenses: fullscreen draws, textures and render targets. */
 export class GLKit {
   private readonly vao: WebGLVertexArrayObject;
   readonly maxTextureSize: number;
   readonly floatRenderTargets: boolean;
+  /** RGBA16F color attachments are available (EXT_color_buffer_half_float or _float). */
+  readonly halfFloatTargets: boolean;
 
   constructor(readonly gl: WebGL2RenderingContext) {
     const vao = gl.createVertexArray();
@@ -94,6 +103,7 @@ export class GLKit {
     this.vao = vao;
     this.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
     this.floatRenderTargets = !!gl.getExtension('EXT_color_buffer_float');
+    this.halfFloatTargets = this.floatRenderTargets || !!gl.getExtension('EXT_color_buffer_half_float');
     gl.disable(gl.DEPTH_TEST);
     gl.disable(gl.BLEND);
   }
@@ -102,7 +112,7 @@ export class GLKit {
     return new Program(this.gl, fragmentSource, FULLSCREEN_VS, label);
   }
 
-  createTexture(width: number, height: number, filter: 'linear' | 'nearest' = 'linear'): WebGLTexture {
+  createTexture(width: number, height: number, filter: 'linear' | 'nearest' = 'linear', format: TargetFormat = 'rgba8'): WebGLTexture {
     const gl = this.gl;
     const tex = gl.createTexture();
     if (!tex) throw new Error('createTexture failed');
@@ -113,7 +123,8 @@ export class GLKit {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     if (width > 0 && height > 0) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      if (format === 'rgba16f') gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, width, height, 0, gl.RGBA, gl.HALF_FLOAT, null);
+      else gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     }
     return tex;
   }
@@ -131,9 +142,10 @@ export class GLKit {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, source);
   }
 
-  createTarget(width: number, height: number, filter: 'linear' | 'nearest' = 'linear'): RenderTarget {
+  createTarget(width: number, height: number, filter: 'linear' | 'nearest' = 'linear', format: TargetFormat = 'rgba8'): RenderTarget {
     const gl = this.gl;
-    const tex = this.createTexture(width, height, filter);
+    const fmt: TargetFormat = format === 'rgba16f' && this.halfFloatTargets ? 'rgba16f' : 'rgba8';
+    const tex = this.createTexture(width, height, filter, fmt);
     const fbo = gl.createFramebuffer();
     if (!fbo) throw new Error('createFramebuffer failed');
     gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
@@ -145,14 +157,14 @@ export class GLKit {
       gl.deleteTexture(tex);
       throw new Error(`Framebuffer incomplete (0x${status.toString(16)}) at ${width}×${height}`);
     }
-    return { fbo, tex, width, height };
+    return { fbo, tex, width, height, format: fmt };
   }
 
   /** Returns `t` if it already has the requested size, otherwise a freshly allocated target. */
-  ensureTarget(t: RenderTarget | null, width: number, height: number): RenderTarget {
-    if (t && t.width === width && t.height === height) return t;
+  ensureTarget(t: RenderTarget | null, width: number, height: number, format: TargetFormat = 'rgba8'): RenderTarget {
+    if (t && t.width === width && t.height === height && (t.format ?? 'rgba8') === (format === 'rgba16f' && this.halfFloatTargets ? 'rgba16f' : 'rgba8')) return t;
     if (t) this.deleteTarget(t);
-    return this.createTarget(width, height);
+    return this.createTarget(width, height, 'linear', format);
   }
 
   deleteTarget(t: RenderTarget | null): void {
@@ -181,6 +193,14 @@ export class GLKit {
       else if (value.length === 2) gl.uniform2f(loc, value[0] ?? 0, value[1] ?? 0);
       else if (value.length === 3) gl.uniform3f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0);
       else if (value.length === 4) gl.uniform4f(loc, value[0] ?? 0, value[1] ?? 0, value[2] ?? 0, value[3] ?? 0);
+    }
+    for (const [name, value] of Object.entries(opts.ints ?? {})) {
+      const loc = program.loc(name);
+      if (loc !== null) gl.uniform1i(loc, value);
+    }
+    for (const [name, value] of Object.entries(opts.vec3Arrays ?? {})) {
+      const loc = program.loc(name) ?? program.loc(`${name}[0]`);
+      if (loc !== null) gl.uniform3fv(loc, value);
     }
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
