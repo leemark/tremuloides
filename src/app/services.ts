@@ -5,6 +5,7 @@ import { PwaManager } from '../pwa/pwa';
 import { Busy } from './busy';
 import { CaptureQueue } from './queue';
 import { FieldLogService } from '../fieldlog/service';
+import { PhoneAlbum, type DirHandleLike } from '../storage/album';
 import { logEvent, errorMessage } from '../diagnostics/log';
 
 export interface DiagState {
@@ -23,6 +24,7 @@ export interface Services {
   busy: Busy;
   queue: CaptureQueue;
   fieldlog: FieldLogService;
+  album: PhoneAlbum;
   diag: DiagState;
 }
 
@@ -42,6 +44,16 @@ export function createServices(): Services {
     rendererError,
     store,
     fieldlog: new FieldLogService(store),
+    album: new PhoneAlbum({
+      loadHandle: () => store.kvGet<DirHandleLike>('albumDir'),
+      saveHandle: (h) => (h ? store.kvSet('albumDir', h) : store.kvDelete('albumDir')),
+      listCaptures: () => store.list(),
+      blob: (k) => store.blob(k),
+      markSaved: (id, at) => store.setAlbumSaved(id, at),
+      since: () => settings.flag('albumSince') || null,
+      setSince: (iso) => settings.setFlag('albumSince', iso ?? ''),
+      saveOriginals: () => settings.get().albumOriginals,
+    }),
     settings,
     pwa: new PwaManager(settings),
     busy: new Busy(),

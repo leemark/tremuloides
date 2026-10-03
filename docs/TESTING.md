@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.6.0: Phone album
+1. Settings → **Phone album** → **Choose album folder**. In Android's picker, go to **Pictures**, create a folder **Tremuloides**, open it, and tap **Use this folder** → **Allow**. Settings shows "✓ Saving to Tremuloides".
+2. Take a photo. Within a few seconds the Files app shows `Pictures/Tremuloides/tremuloides_…_<lens>_xxxxxx.jpg` plus `…_original.jpg`. The photo's detail screen shows "Album: Saved to phone".
+3. Google Photos → Library → **Photos on device** → Tremuloides shows them (turn on backup there if you want).
+4. **Copy existing photos** copies everything taken before the album was set up.
+5. Force-close and reopen the app, then take a photo. If Android asks to allow folder access again, allow it. The photo (and any taken meanwhile) lands in the folder.
+6. Turn off **Save originals too** and take a photo: only the lens version is written. On any photo, **Original** shares the unprocessed original.
+
 ## v0.5.1: Field tuning
 1. Ink & Wash opens on **Gouache**. Red-orange and gold aspens and green spruce should keep their real colors.
 2. Switch to **Auto**: aspens should read orange/gold, not brown. **San Juan**: meadows mostly Dry Grass, with few rust specks.

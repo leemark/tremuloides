@@ -68,6 +68,26 @@ export class CaptureStore {
     await tx.done;
   }
 
+  async setAlbumSaved(id: string, at: string): Promise<void> {
+    const db = await this.db();
+    const tx = db.transaction('captures', 'readwrite');
+    const c = await tx.store.get(id);
+    if (c) await tx.store.put({ ...c, albumSavedAt: at });
+    await tx.done;
+  }
+
+  async kvGet<T>(key: string): Promise<T | undefined> {
+    return (await (await this.db()).get('kv', key)) as T | undefined;
+  }
+
+  async kvSet(key: string, value: unknown): Promise<void> {
+    await (await this.db()).put('kv', value, key);
+  }
+
+  async kvDelete(key: string): Promise<void> {
+    await (await this.db()).delete('kv', key);
+  }
+
   async setFieldlog(id: string, fieldlog: FieldLogData): Promise<void> {
     const db = await this.db();
     const tx = db.transaction('captures', 'readwrite');

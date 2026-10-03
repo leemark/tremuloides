@@ -74,8 +74,12 @@ services.diag.lensId = services.settings.get().currentLens;
 
 // ---------- Field Log: analyse new and older captures in the background ----------
 setTimeout(() => void services.fieldlog.run(), 1500);
+setTimeout(() => void services.album.sync(), 2500);
 services.queue.onChange((pending) => {
-  if (pending === 0) void services.fieldlog.run();
+  if (pending === 0) {
+    void services.fieldlog.run();
+    void services.album.sync(); // copy new photos to the phone album folder
+  }
 });
 
 // ---------- Start ----------

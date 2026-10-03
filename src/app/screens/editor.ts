@@ -133,6 +133,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
   }
 
   async function save() {
+    void s.album.ensurePermission();
     if (saving || !renderer) return;
     saving = true;
     saveBtn.disabled = true;
@@ -151,6 +152,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
         ...(input.parent?.geo ? { geo: input.parent.geo } : {}),
       });
       if (input.source === 'import') s.settings.setLensParams(lens.id, params);
+      void s.album.sync();
       toast('Saved to gallery');
       if (alive) app.replace({ name: 'detail', id: capture.id });
     } catch (e) {

@@ -87,6 +87,91 @@ export function createSettings(app: App): Screen {
   })();
   const storage = section('Storage', storageLine);
 
+  // Phone album
+  const albumStatus = h('p', { class: 'status-line' });
+  const albumActions = h('div', { class: 'row-actions' });
+  const albumHint = h('p', { class: 'muted small' });
+  const renderAlbum = async () => {
+    const st = await s.album.state();
+    albumActions.replaceChildren();
+    if (st.status === 'unsupported') {
+      albumStatus.className = 'status-line warn';
+      albumStatus.textContent = 'Not supported in this browser (needs Chrome 132+ on Android).';
+      albumHint.textContent = 'You can still Share or Save photos one at a time.';
+      return;
+    }
+    if (st.status === 'off') {
+      albumStatus.className = 'status-line';
+      albumStatus.textContent = 'Off: photos are kept inside the app only.';
+      albumHint.textContent = 'Pick (or create) a folder such as Pictures › Tremuloides. Every new photo is then saved there automatically, and it shows up in Google Photos under Photos on device.';
+      albumActions.append(h('button', { class: 'btn btn-primary', text: 'Choose album folder', onclick: () => void choose() }));
+      return;
+    }
+    const ready = st.status === 'ready';
+    albumStatus.className = `status-line ${ready ? 'ok' : 'warn'}`;
+    albumStatus.textContent = ready
+      ? `✓ Saving to “${st.folder}”`
+      : st.status === 'denied'
+        ? `Access to “${st.folder}” was blocked. Choose the folder again.`
+        : `“${st.folder}” needs a tap to re-allow access.`;
+    albumHint.textContent = ready ? 'New photos (and their originals, if on) are copied there as soon as they’re saved.' : 'Photos taken meanwhile are kept and copied once access is allowed.';
+    if (!ready && st.status !== 'denied') {
+      albumActions.append(
+        h('button', {
+          class: 'btn btn-primary',
+          text: 'Allow access',
+          onclick: async () => {
+            if (await s.album.ensurePermission()) toast('Album access allowed');
+            void renderAlbum();
+          },
+        }),
+      );
+    }
+    albumActions.append(
+      h('button', {
+        class: 'btn',
+        text: 'Copy existing photos',
+        onclick: async () => {
+          if (!(await s.album.ensurePermission())) {
+            toast('Allow folder access first');
+            return;
+          }
+          toast('Copying photos to the album…');
+          const n = await s.album.sync({ all: true });
+          toast(n ? `Copied ${n} photo${n === 1 ? '' : 's'} to the album` : 'Album is already up to date');
+        },
+      }),
+      h('button', { class: 'btn btn-ghost', text: 'Change folder', onclick: () => void choose() }),
+      h('button', {
+        class: 'btn btn-ghost',
+        text: 'Turn off',
+        onclick: async () => {
+          await s.album.turnOff();
+          toast('Album off. Files already saved stay in the folder.');
+          void renderAlbum();
+        },
+      }),
+    );
+  };
+  const choose = async () => {
+    try {
+      const st = await s.album.choose();
+      if (st.status === 'ready') toast(`Saving new photos to “${st.folder}”`);
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === 'AbortError')) toast(`Couldn’t use that folder: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    void renderAlbum();
+  };
+  void renderAlbum();
+  cleanups.push(s.album.onChange(() => void renderAlbum()));
+  const album = section(
+    'Phone album',
+    albumStatus,
+    albumHint,
+    albumActions,
+    toggle('albumOriginals', 'Save originals too', 'Each photo’s unprocessed original goes in the album as …_original.jpg'),
+  );
+
   // Captures
   const captures = section(
     'Captures',
@@ -179,7 +264,7 @@ export function createSettings(app: App): Screen {
     }),
   );
 
-  body.append(about, storage, captures, diagnostics, danger);
+  body.append(about, album, storage, captures, diagnostics, danger);
 
   return {
     el,

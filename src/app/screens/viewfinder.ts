@@ -389,6 +389,8 @@ export function createViewfinder(app: App): Screen {
   }
 
   async function capture() {
+    // Uses this tap to re-approve album folder access if Android asks (no-op when not needed).
+    void s.album.ensurePermission();
     if (!renderer) {
       toast('This device can’t render lenses (WebGL2 unavailable).');
       return;

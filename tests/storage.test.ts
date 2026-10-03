@@ -82,10 +82,23 @@ describe('storage', () => {
     upgraded.close();
   });
 
+  it('upgrades v1 to the current schema (adds kv) without losing captures', async () => {
+    const name = uniqueName();
+    const v1 = await openAppDB(name, MIGRATIONS.slice(0, 1));
+    await v1.put('captures', { ...meta('OLD', '2026-10-01T00:00:00.000Z'), outputKey: 'OLD:out', thumbKey: 'OLD:thumb' });
+    v1.close();
+    const store = new CaptureStore(() => openAppDB(name));
+    expect((await store.get('OLD'))?.id).toBe('OLD');
+    await store.kvSet('albumDir', { name: 'Tremuloides' });
+    expect(await store.kvGet<{ name: string }>('albumDir')).toEqual({ name: 'Tremuloides' });
+    await store.setAlbumSaved('OLD', '2026-10-02T00:00:00.000Z');
+    expect((await store.get('OLD'))?.albumSavedAt).toBe('2026-10-02T00:00:00.000Z');
+  });
+
   it('runs every migration on a fresh database', async () => {
     const name = uniqueName();
     const db = await openAppDB(name);
-    expect([...db.objectStoreNames].sort()).toEqual(['blobs', 'captures', 'logs']);
+    expect([...db.objectStoreNames].sort()).toEqual(['blobs', 'captures', 'kv', 'logs']);
     db.close();
     const raw = await openDB(name);
     expect(raw.version).toBe(SCHEMA_VERSION);

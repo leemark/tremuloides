@@ -8,6 +8,8 @@ export interface TremDB extends DBSchema {
   captures: { key: string; value: Capture; indexes: { createdAt: string } };
   blobs: { key: string; value: Blob };
   logs: { key: number; value: LogEntry };
+  /** Small structured values that can't live in localStorage (e.g. directory handles). */
+  kv: { key: string; value: unknown };
 }
 
 export type UpgradeTx = IDBPTransaction<TremDB, StoreNames<TremDB>[], 'versionchange'>;
@@ -25,6 +27,10 @@ export const MIGRATIONS: readonly Migration[] = [
     captures.createIndex('createdAt', 'createdAt');
     db.createObjectStore('blobs');
     db.createObjectStore('logs', { autoIncrement: true });
+  },
+  // v2: key/value store for the phone album folder handle
+  (db) => {
+    db.createObjectStore('kv');
   },
 ];
 
