@@ -1,4 +1,4 @@
-import { extractPalette } from './palette';
+import { huePalette } from './palette';
 
 interface Request {
   id: number;
@@ -10,7 +10,8 @@ interface Request {
 self.onmessage = (e: MessageEvent<Request>) => {
   const { id, pixels, k, seed } = e.data;
   try {
-    const palette = extractPalette(pixels, k, seed);
+    void seed;
+    const palette = huePalette(pixels, k);
     self.postMessage({ id, palette });
   } catch (err) {
     self.postMessage({ id, error: String(err) });

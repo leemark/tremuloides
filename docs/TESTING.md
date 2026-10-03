@@ -2,6 +2,13 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.5.1: Field tuning
+1. Ink & Wash opens on **Gouache**. Red-orange and gold aspens and green spruce should keep their real colors.
+2. Switch to **Auto**: aspens should read orange/gold, not brown. **San Juan**: meadows mostly Dry Grass, with few rust specks.
+3. Stained Glass on a scene with grass in front: panes should be larger in the grass and clouds and smaller around trees and ridgelines.
+4. Field Log: stripes refresh once ("Analyzing colors…"). Red-orange aspen shots now show a higher % warm.
+5. Saved lens settings are kept, so to try the new Ink & Wash default, tap **Reset** in its settings.
+
 ## v0.5.0: Stained Glass
 1. Pick **Stained Glass**. Panes should be small along tree lines and the ridge, larger in open sky, and re-arrange gently (about twice a second) as you move.
 2. Lens settings → raise and lower **Cells** and **Edge attraction**; change **Lead width** and **Lead color**; toggle **Glass texture**; slide **Glow**.

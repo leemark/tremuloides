@@ -22,7 +22,7 @@ export const stainedGlassLens: Lens = {
   id: 'stained-glass',
   name: 'Stained Glass',
   tagline: 'Leaded panes of light, denser at the edges',
-  version: 1,
+  version: 2,
   kind: 'realtime',
   seeded: true,
   params: [

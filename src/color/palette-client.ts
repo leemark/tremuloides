@@ -1,4 +1,4 @@
-import { extractPalette, type Palette } from './palette';
+import { huePalette, type Palette } from './palette';
 import { logEvent } from '../diagnostics/log';
 
 type Pending = { resolve: (p: Palette) => void; reject: (e: Error) => void };
@@ -35,8 +35,9 @@ class PaletteClient {
   }
 
   async compute(pixels: Uint8ClampedArray, k: number, seed = 1): Promise<Palette> {
+    void seed;
     const w = this.getWorker();
-    if (!w) return extractPalette(pixels, k, seed);
+    if (!w) return huePalette(pixels, k);
     const id = this.nextId++;
     try {
       return await new Promise<Palette>((resolve, reject) => {
@@ -44,7 +45,7 @@ class PaletteClient {
         w.postMessage({ id, pixels, k, seed });
       });
     } catch {
-      return extractPalette(pixels, k, seed);
+      return huePalette(pixels, k);
     }
   }
 }

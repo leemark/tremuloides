@@ -368,7 +368,7 @@ A painterly, illustrated "cartoon" look built from classic non-photorealistic re
 |---|---|---|---|---|
 | `brush` | Brush size | range | 2–14 ref px | 6 |
 | `sharpness` | Edge sharpness | range | 1–16 | 8 |
-| `palette` | Palette | select | Auto / San Juan / Gouache / Mono ink | Auto |
+| `palette` | Palette | select | Auto / San Juan / Gouache / Mono ink | Gouache (changed from Auto after field testing, v0.5.1) |
 | `colors` | Colors | range | 3–12 (Auto and Gouache) | 6 |
 | `lineWeight` | Line weight | range | 0.5–4 ref px | 1.4 |
 | `lineAmount` | Line amount | range | 0–1 | 0.6 |

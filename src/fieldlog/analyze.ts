@@ -1,19 +1,19 @@
-import { extractPalette } from '../color/palette';
+import { huePalette } from '../color/palette';
 import { oklabToOklch, oklabToSrgb, srgbToHex, srgbToOklab, type Vec3 } from '../color/oklab';
 import type { FieldLogData } from '../storage/types';
 
 /** Bump when the analysis changes; older results are recomputed by the backfill. */
-export const FIELDLOG_VERSION = 1;
+export const FIELDLOG_VERSION = 2;
 export const PALETTE_SIZE = 6;
 export const SAMPLE_EDGE = 160;
 
 /**
- * Autumn-foliage test in Oklch, calibrated on the San Juan palette:
- * aspen gold (h≈85°), ember orange (h≈50°) and yellow-orange leaves fall in
- * 40°–105°; iron-red rock (h≈33°) and dull browns are excluded by hue and chroma;
- * snow, sky, spruce and granite fail on chroma or hue.
+ * Autumn-foliage test in Oklch. Aspen gold (h≈85°), orange (h≈50°) and the red-orange stands
+ * seen in the field (h 25–40°, L 0.43–0.59, C 0.11–0.15) all count. Red-orange aspens overlap
+ * iron-red rock (h≈33°, C≈0.135) in color, so red rock now counts too: fall color mattered more.
+ * Snow, sky, spruce, granite and dull browns still fail on chroma or hue.
  */
-export const WARM = { hueMin: 40, hueMax: 105, chromaMin: 0.08, lMin: 0.45, lMax: 0.92 } as const;
+export const WARM = { hueMin: 28, hueMax: 105, chromaMin: 0.08, lMin: 0.42, lMax: 0.92 } as const;
 
 export function isWarmFoliage(lab: Vec3): boolean {
   const [L, C, h] = oklabToOklch(lab);
@@ -34,7 +34,7 @@ export function warmIndex(pixels: ArrayLike<number>): number {
 
 /** Palette (hex + weight, sorted by weight) and warm index for one image. */
 export function analyzePixels(pixels: ArrayLike<number>): FieldLogData {
-  const pal = extractPalette(pixels, PALETTE_SIZE, 1);
+  const pal = huePalette(pixels, PALETTE_SIZE);
   const palette = pal.colors
     .map((c, i) => ({ hex: srgbToHex(oklabToSrgb(c)), weight: Number((pal.weights[i] ?? 0).toFixed(4)) }))
     .filter((p) => p.weight > 0)

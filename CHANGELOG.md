@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.1 (2026-10-02)
+- Ink & Wash now defaults to the Gouache palette, which keeps the real colors of the aspens, spruce and sky
+- Auto palette rebuilt so orange, red-orange and gold leaves no longer turn muddy brown
+- San Juan palette gains Dry Grass, so meadows don't speckle rust-red
+- Stained Glass puts fewer tiny panes in grass and clouds, saving detail for the trees and ridges
+- Field Log counts red-orange aspens as autumn color and refreshes older photos' palettes
+
 ## v0.5.0 (2026-10-02)
 - New Stained Glass lens: leaded panes of light, smaller and denser along edges and detail
 - Adjust pane count, edge attraction, lead width and color, glow and glass texture
