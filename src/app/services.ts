@@ -6,6 +6,7 @@ import { Busy } from './busy';
 import { CaptureQueue } from './queue';
 import { FieldLogService } from '../fieldlog/service';
 import { PhoneAlbum, type DirHandleLike } from '../storage/album';
+import { withExif } from './export';
 import { logEvent, errorMessage } from '../diagnostics/log';
 
 export interface DiagState {
@@ -53,6 +54,9 @@ export function createServices(): Services {
       since: () => settings.flag('albumSince') || null,
       setSince: (iso) => settings.setFlag('albumSince', iso ?? ''),
       saveOriginals: () => settings.get().albumOriginals,
+      decorate: (blob, c, which) => withExif(blob, c, which),
+      // Wait up to 20 s for a GPS fix so album files get location EXIF.
+      defer: (c) => settings.get().locationTagging && !c.geo && Date.now() - new Date(c.createdAt).getTime() < 20_000,
     }),
     settings,
     pwa: new PwaManager(settings),

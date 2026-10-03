@@ -482,7 +482,7 @@ Turns the skyline of the photo into music.
 ## 15. Backlog (not scheduled)
 
 - **Done in v0.6.0: phone album.** Captures (and originals) are auto-written to a user-chosen folder via the File System Access API, with the in-app IndexedDB copy kept as the source of truth (`src/storage/album.ts`).
-- **B1.** Write EXIF (DateTimeOriginal, GPS, Software, and lens parameters in UserComment) into exported JPEGs.
+- **B1. Done in v0.6.1:** EXIF (DateTimeOriginal + offset, GPS + altitude, Software, lens parameters in UserComment) written into exported and album JPEGs (`src/util/exif.ts`). Camera originals that already carry EXIF are left untouched.
 - **B2.** Tiled rendering beyond `MAX_TEXTURE_SIZE` for full-resolution imports from dedicated cameras.
 - **B3.** Capacitor wrapper and an APK build in GitHub Actions, signed with a keystore stored as a repo secret.
 - **B4.** Zoom and tap-to-focus, where track capabilities allow.

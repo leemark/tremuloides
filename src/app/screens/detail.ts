@@ -6,6 +6,7 @@ import { paramSummary } from '../params-ui';
 import { exportFilename, metersToFeet } from '../../util/format';
 import { downloadBlob, shareFiles } from '../share';
 import { extFor } from '../../storage/album';
+import { withExif } from '../export';
 import { processAndSave } from '../capture';
 import { randomSeed } from '../../util/prng';
 import type { Capture } from '../../storage/types';
@@ -37,7 +38,9 @@ export function createDetail(app: App, id: string): Screen {
 
   async function outputFile(c: Capture): Promise<File | null> {
     const blob = await s.store.blob(c.outputKey);
-    return blob ? new File([blob], filename(c), { type: blob.type }) : null;
+    if (!blob) return null;
+    const tagged = await withExif(blob, c, 'output');
+    return new File([tagged], filename(c), { type: tagged.type || blob.type });
   }
 
   function action(icon: string, label: string, run: () => void | Promise<void>, cls = '') {
@@ -95,8 +98,9 @@ export function createDetail(app: App, id: string): Screen {
       }),
       c.originalKey
         ? action(ICONS.share, 'Original', async () => {
-            const blob = await s.store.blob(c.originalKey);
-            if (!blob) return;
+            const raw = await s.store.blob(c.originalKey);
+            if (!raw) return;
+            const blob = await withExif(raw, c, 'original');
             const name = filename(c).replace(/\.(jpg|png)$/, `_original.${extFor(blob.type)}`);
             const r = await shareFiles([new File([blob], name, { type: blob.type || 'image/jpeg' })]);
             if (r === 'downloaded') toast('Original saved to Downloads');
