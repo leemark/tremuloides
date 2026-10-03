@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.8.0 (2026-10-03)
+- New Topo lens: reads light as elevation and draws the scene as a contour map, with thicker index lines every fifth level
+- Three styles: USGS quad (brown on cream, blue sky), Night (gold on ink) and Blueprint, plus optional shaded relief
+- SVG button on Topo photos exports plotter-ready contours, one layer per level
+
+## v0.7.0 (2026-10-03)
+- New Ridgeline Score lens: traces the skyline and turns it into a melody, with bright autumn color adding mallet sparkles
+- On a saved photo: Play (with a playhead moving across the picture), WAV and MIDI export
+- Choose the scale, root note, number of notes and tempo
+
+## v0.6.1 (2026-10-03)
+- Saved, shared and album photos now carry date, time, GPS location and elevation, so Google Photos sorts them correctly and shows them on its map
+- The lens and its settings are recorded in each photo's details
+- Field Log has a labeled button in the Gallery
+
 ## v0.6.0 (2026-10-02)
 - Phone album: pick a folder once (e.g. Pictures › Tremuloides) and every photo, plus its original, is saved there automatically
 - Album photos appear in Google Photos under Photos on device and can be backed up
