@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.6.0 (2026-10-02)
+- Phone album: pick a folder once (e.g. Pictures › Tremuloides) and every photo, plus its original, is saved there automatically
+- Album photos appear in Google Photos under Photos on device and can be backed up
+- "Copy existing photos" puts earlier shots in the album too
+- New Original button on each photo to share the unprocessed original
+
 ## v0.5.1 (2026-10-02)
 - Ink & Wash now defaults to the Gouache palette, which keeps the real colors of the aspens, spruce and sky
 - Auto palette rebuilt so orange, red-orange and gold leaves no longer turn muddy brown

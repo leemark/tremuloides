@@ -37,5 +37,7 @@ export interface Capture {
   captureMethod?: CaptureMethod;
   geo?: GeoTag;
   fieldlog?: FieldLogData;
+  /** When this capture's files were written to the phone album folder. */
+  albumSavedAt?: string;
   appVersion: string;
 }

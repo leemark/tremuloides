@@ -11,6 +11,8 @@ export interface Settings {
   captureSource: 'auto' | 'video';
   fpsOverlay: boolean;
   currentLens: string;
+  /** Also write originals into the phone album folder. */
+  albumOriginals: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   captureSource: 'auto',
   fpsOverlay: false,
   currentLens: 'ink-wash',
+  albumOriginals: true,
 };
 
 /** Minimal synchronous key/value store (localStorage), safe when storage is unavailable. */

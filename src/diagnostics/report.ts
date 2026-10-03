@@ -18,10 +18,11 @@ export async function storageInfo(): Promise<StorageInfo> {
 
 /** Compact JSON report for pasting into a bug report. */
 export async function buildReport(s: Services): Promise<Record<string, unknown>> {
-  const [storage, captures, logs] = await Promise.all([
+  const [storage, captures, logs, album] = await Promise.all([
     storageInfo(),
     s.store.count().catch(() => null),
     s.store.logs().catch(() => []),
+    s.album.state().catch((e: unknown) => ({ status: 'error', error: String(e) })),
   ]);
   return {
     app: { version: APP_VERSION, sha: BUILD_SHA, built: BUILD_DATE, schema: SCHEMA_VERSION },
@@ -42,6 +43,7 @@ export async function buildReport(s: Services): Promise<Record<string, unknown>>
       fps: Number(s.diag.fps.toFixed(1)),
     },
     temporal: s.renderer?.temporalInfo() ?? null,
+    album: { ...album, savedThisSession: s.album.savedThisSession, lastError: s.album.lastError, since: s.settings.flag('albumSince') || null },
     storage: { ...storage, captures },
     serviceWorker: s.pwa.serviceWorkerState,
     offlineReady: s.pwa.offlineReady,

@@ -5,6 +5,7 @@ import { sanitizeParams } from '../../lenses/params';
 import { paramSummary } from '../params-ui';
 import { exportFilename, metersToFeet } from '../../util/format';
 import { downloadBlob, shareFiles } from '../share';
+import { extFor } from '../../storage/album';
 import { processAndSave } from '../capture';
 import { randomSeed } from '../../util/prng';
 import type { Capture } from '../../storage/types';
@@ -80,7 +81,9 @@ export function createDetail(app: App, id: string): Screen {
       rows.append(infoRow('Location', `${c.geo.lat.toFixed(5)}, ${c.geo.lon.toFixed(5)}${alt}`));
     }
     const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene', burst: 'Burst (Quake)', 'slit-scan': 'Slit-scan (Quake)' }[c.captureMethod ?? 'file'];
-    rows.append(infoRow('Source', `${method}${c.source === 'derived' ? ' · re-edit' : ''}`), infoRow('App', `v${c.appVersion}`));
+    rows.append(infoRow('Source', `${method}${c.source === 'derived' ? ' · re-edit' : ''}`));
+    if (c.albumSavedAt) rows.append(infoRow('Album', `Saved to phone ${formatDateTime(c.albumSavedAt)}`));
+    rows.append(infoRow('App', `v${c.appVersion}`));
     info.replaceChildren(rows);
 
     const buttons: (HTMLButtonElement | null)[] = [
@@ -90,6 +93,15 @@ export function createDetail(app: App, id: string): Screen {
         const r = await shareFiles([f]);
         if (r === 'downloaded') toast('Saved to Downloads');
       }),
+      c.originalKey
+        ? action(ICONS.share, 'Original', async () => {
+            const blob = await s.store.blob(c.originalKey);
+            if (!blob) return;
+            const name = filename(c).replace(/\.(jpg|png)$/, `_original.${extFor(blob.type)}`);
+            const r = await shareFiles([new File([blob], name, { type: blob.type || 'image/jpeg' })]);
+            if (r === 'downloaded') toast('Original saved to Downloads');
+          })
+        : null,
       action(ICONS.download, 'Save', async () => {
         const f = await outputFile(c);
         if (f) {
