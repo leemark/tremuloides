@@ -1,5 +1,5 @@
 import { COLOR_GLSL, fragment, type GLKit, type RenderTarget } from '../../gl/kit';
-import { blendPalettes, extractPalette, hexPalette, paletteUniform } from '../../color/palette';
+import { blendPalettes, hexPalette, huePalette, paletteUniform } from '../../color/palette';
 import { paletteClient } from '../../color/palette-client';
 import type { Vec3 } from '../../color/oklab';
 import { hexToRgb01 } from '../params';
@@ -15,8 +15,8 @@ import FLOW from './shaders/flow.frag.glsl?raw';
 import COMPOSITE from './shaders/composite.frag.glsl?raw';
 import COPY from './shaders/copy.frag.glsl?raw';
 
-/** Autumn San Juans palette (PRD §14 M2). */
-export const SAN_JUAN_HEX = ['#e9b825', '#d96a27', '#a4412e', '#2e4a3b', '#7e8f6a', '#4e86c8', '#8b8781', '#f3f2ec', '#1a1c21'] as const;
+/** Autumn San Juans palette (PRD §14 M2) plus Dry Grass #A68B5B, added after field testing so meadows don't speckle iron-red. */
+export const SAN_JUAN_HEX = ['#e9b825', '#d96a27', '#a4412e', '#2e4a3b', '#7e8f6a', '#4e86c8', '#8b8781', '#f3f2ec', '#1a1c21', '#a68b5b'] as const;
 const SAN_JUAN = hexPalette(SAN_JUAN_HEX);
 const MODES: Record<string, number> = { auto: 0, sanjuan: 1, gouache: 2, mono: 3 };
 const PALETTE_SAMPLE_EDGE = 128;
@@ -36,7 +36,7 @@ export const inkWashLens: Lens = {
   id: 'ink-wash',
   name: 'Ink & Wash',
   tagline: 'Painterly brushwork with inked edges',
-  version: 1,
+  version: 2,
   kind: 'realtime',
   seeded: false,
   params: [
@@ -52,7 +52,7 @@ export const inkWashLens: Lens = {
         { value: 'gouache', label: 'Gouache' },
         { value: 'mono', label: 'Mono ink' },
       ],
-      default: 'auto',
+      default: 'gouache',
     },
     { id: 'colors', label: 'Colors', type: 'range', min: 3, max: 12, step: 1, default: 7, help: 'For Auto and Gouache palettes' },
     { id: 'lineWeight', label: 'Line weight', type: 'range', min: 0.5, max: 4, step: 0.1, default: 1.3 },
@@ -230,7 +230,7 @@ export const inkWashLens: Lens = {
           if (!autoPalette || autoK !== k) {
             // First frame (or Colors changed): compute synchronously so the preview never flashes.
             const pixels = samplePixels(req.input, req.width, req.height);
-            autoPalette = extractPalette(pixels, k, 1).colors;
+            autoPalette = huePalette(pixels, k).colors;
             autoK = k;
           }
         }

@@ -24,9 +24,10 @@ function cap(id: string, createdAt: string, extra: Partial<Capture> = {}): Captu
 }
 
 describe('warm foliage', () => {
-  it('counts golds and oranges but not rock, sky, spruce, snow or granite', () => {
-    for (const h of ['#e9b825', '#d96a27', '#f2c84b', '#e0a020']) expect(isWarmFoliage(lab(h)), h).toBe(true);
-    for (const h of ['#a4412e', '#4e86c8', '#2e4a3b', '#f3f2ec', '#8b8781', '#1a1c21', '#7e8f6a']) expect(isWarmFoliage(lab(h)), h).toBe(false);
+  it('counts golds, oranges and red-orange aspens but not sky, spruce, snow or granite', () => {
+    // #b8501e ≈ the red-orange aspen stands measured in a San Juans field photo (h≈35°).
+    for (const h of ['#e9b825', '#d96a27', '#f2c84b', '#e0a020', '#b8501e']) expect(isWarmFoliage(lab(h)), h).toBe(true);
+    for (const h of ['#4e86c8', '#2e4a3b', '#f3f2ec', '#8b8781', '#1a1c21', '#7e8f6a']) expect(isWarmFoliage(lab(h)), h).toBe(false);
   });
 
   it('measures the warm fraction', () => {

@@ -7,11 +7,14 @@ export const SAMPLE_EDGE = 320;
  * Sobel gradient magnitude of luma, normalised so the 95th percentile is 1 (clamped).
  * For scenes with few edges (p95 near zero) the reference falls back to a quarter of the maximum.
  */
-export function edgeMagnitude(rgba: ArrayLike<number>, w: number, h: number): Float32Array {
-  const lum = new Float32Array(w * h);
+export function edgeMagnitude(rgba: ArrayLike<number>, w: number, h: number, smooth = 2): Float32Array {
+  let lum: Float32Array = new Float32Array(w * h);
   for (let i = 0; i < w * h; i++) {
     lum[i] = (0.2126 * (rgba[i * 4] ?? 0) + 0.7152 * (rgba[i * 4 + 1] ?? 0) + 0.0722 * (rgba[i * 4 + 2] ?? 0)) / 255;
   }
+  // Light blur first so fine texture (grass, gravel) doesn't read as structure and fill
+  // the foreground with tiny panes; ridgelines and tree edges survive it.
+  for (let pass = 0; pass < smooth; pass++) lum = boxBlur3(lum, w, h);
   const at = (x: number, y: number) => lum[Math.min(h - 1, Math.max(0, y)) * w + Math.min(w - 1, Math.max(0, x))] ?? 0;
   const mag = new Float32Array(w * h);
   for (let y = 0; y < h; y++) {
@@ -28,6 +31,26 @@ export function edgeMagnitude(rgba: ArrayLike<number>, w: number, h: number): Fl
   const scale = ref > 1e-6 ? 1 / ref : 0;
   for (let i = 0; i < mag.length; i++) mag[i] = Math.min(1, (mag[i] ?? 0) * scale);
   return mag;
+}
+
+function boxBlur3(src: Float32Array, w: number, h: number): Float32Array {
+  const tmp = new Float32Array(w * h);
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const l = src[y * w + Math.max(0, x - 1)] ?? 0;
+      const r = src[y * w + Math.min(w - 1, x + 1)] ?? 0;
+      tmp[y * w + x] = (l + (src[y * w + x] ?? 0) + r) / 3;
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const u = tmp[Math.max(0, y - 1) * w + x] ?? 0;
+      const d = tmp[Math.min(h - 1, y + 1) * w + x] ?? 0;
+      out[y * w + x] = (u + (tmp[y * w + x] ?? 0) + d) / 3;
+    }
+  }
+  return out;
 }
 
 /**

@@ -12,8 +12,8 @@ A painterly, illustrated look built entirely from classic non-photorealistic ren
 ### Palettes
 | Palette | How it works |
 |---|---|
-| Auto | k-means in Oklab (k = Colors) on a 128 px sample. It runs in a Web Worker and refreshes about once a second in the preview, easing between updates so it doesn't flicker. Saved photos use a palette computed from the photo itself. Each pixel softly blends its two nearest palette colors. |
-| San Juan | Fixed: Aspen Gold `#E9B825`, Ember `#D96A27`, Iron Red `#A4412E`, Spruce `#2E4A3B`, Sage `#7E8F6A`, Sky `#4E86C8`, Granite `#8B8781`, Snow `#F3F2EC`, Ink `#1A1C21` |
+| Auto | Hue-aware palette (`huePalette`, Colors entries) from a 128 px sample. Each hue family covering ≥ 1% of the scene (20° sectors) gets its own vivid entry, and neutrals are split by lightness. It runs in a Web Worker and refreshes about once a second in the preview, easing between updates so it doesn't flicker. Saved photos use a palette computed from the photo itself. Each pixel softly blends its two nearest palette colors. Plain k-means was replaced in v2: on real autumn photos it averaged orange, gold and spruce into tan. |
+| San Juan | Fixed: Aspen Gold `#E9B825`, Ember `#D96A27`, Iron Red `#A4412E`, Spruce `#2E4A3B`, Sage `#7E8F6A`, Sky `#4E86C8`, Granite `#8B8781`, Snow `#F3F2EC`, Ink `#1A1C21`, Dry Grass `#A68B5B` (added v2 so meadows don't speckle iron-red) |
 | Gouache | Lightness quantized to Colors levels; hue kept, chroma ×1.15 |
 | Mono ink | Four warm gray washes under the ink |
 
@@ -24,7 +24,7 @@ The Auto and San Juan palettes keep 15% of the original lightness, so flat areas
 |---|---|---|---|
 | `brush` | 2–14 ref px | 6 | Kuwahara radius |
 | `sharpness` | 1–16 | 8 | Sector weighting q |
-| `palette` | auto / sanjuan / gouache / mono | auto | |
+| `palette` | auto / sanjuan / gouache / mono | gouache | Default changed from Auto in v2 after field testing |
 | `colors` | 3–12 | 7 | Auto and Gouache only |
 | `lineWeight` | 0.5–4 ref px | 1.3 | DoG σ |
 | `lineAmount` | 0–1 | 0.6 | Higher = more edges inked |
