@@ -14,6 +14,7 @@ Built for field use. Once installed, it works with no connection at all. When yo
 | Quake | Time displacement (Rows, Columns, Radial, Luma) and slit-scan from live video |
 | Stained Glass | Voronoi panes (jump flooding) packed along edges, with lead came, glow and glass texture |
 | Ridgeline Score | Traces the skyline and plays it as a melody (Play, WAV, MIDI on saved photos) |
+| Topo | Light as elevation: contour map with index lines, hillshade and plotter-ready SVG export |
 | Posterize | Flat bands of lightness, colors kept |
 
 More are planned in [PRD.md](PRD.md) §14: Flow Painter and Topo.
