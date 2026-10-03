@@ -1,7 +1,7 @@
 {
   "name": "tremuloides",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Offline-first camera PWA with algorithmic photo lenses.",
   "type": "module",
   "scripts": {

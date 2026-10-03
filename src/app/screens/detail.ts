@@ -6,14 +6,16 @@ import { paramSummary } from '../params-ui';
 import { exportFilename, metersToFeet } from '../../util/format';
 import { downloadBlob, shareFiles } from '../share';
 import { extFor } from '../../storage/album';
+import { withExif } from '../export';
 import { processAndSave } from '../capture';
 import { randomSeed } from '../../util/prng';
 import type { Capture } from '../../storage/types';
-import { errorMessage } from '../../diagnostics/log';
+import { errorMessage, logEvent } from '../../diagnostics/log';
 
 export function createDetail(app: App, id: string): Screen {
   const s = app.s;
   const urls: string[] = [];
+  const cleanups: (() => void)[] = [];
   let capture: Capture | undefined;
   let outputUrl = '';
   let originalUrl = '';
@@ -37,7 +39,9 @@ export function createDetail(app: App, id: string): Screen {
 
   async function outputFile(c: Capture): Promise<File | null> {
     const blob = await s.store.blob(c.outputKey);
-    return blob ? new File([blob], filename(c), { type: blob.type }) : null;
+    if (!blob) return null;
+    const tagged = await withExif(blob, c, 'output');
+    return new File([tagged], filename(c), { type: tagged.type || blob.type });
   }
 
   function action(icon: string, label: string, run: () => void | Promise<void>, cls = '') {
@@ -95,8 +99,9 @@ export function createDetail(app: App, id: string): Screen {
       }),
       c.originalKey
         ? action(ICONS.share, 'Original', async () => {
-            const blob = await s.store.blob(c.originalKey);
-            if (!blob) return;
+            const raw = await s.store.blob(c.originalKey);
+            if (!raw) return;
+            const blob = await withExif(raw, c, 'original');
             const name = filename(c).replace(/\.(jpg|png)$/, `_original.${extFor(blob.type)}`);
             const r = await shareFiles([new File([blob], name, { type: blob.type || 'image/jpeg' })]);
             if (r === 'downloaded') toast('Original saved to Downloads');
@@ -154,6 +159,43 @@ export function createDetail(app: App, id: string): Screen {
         'danger',
       ),
     ];
+    if (known && lens.actions?.length) {
+      const icons = { play: ICONS.play, audio: ICONS.audio, midi: ICONS.midi, svg: ICONS.svgfile };
+      lens.actions.forEach((la, ai) => {
+        const btn = h('button', { class: 'action lens-action', html: `${icons[la.icon]}<span>${la.label}</span>` });
+        btn.addEventListener('click', () => {
+          void (async () => {
+            try {
+              await la.run({
+                capture: c,
+                source: async () => {
+                  const b = (await s.store.blob(c.originalKey)) ?? (await s.store.blob(c.outputKey));
+                  if (!b) throw new Error('Photo data missing');
+                  return b;
+                },
+                view,
+                img,
+                filenameBase: filename(c).replace(/\.(jpg|png)$/, ''),
+                share: async (file) => {
+                  const r = await shareFiles([file]);
+                  if (r === 'downloaded') toast(`${file.name} saved to Downloads`);
+                },
+                toast: (m) => toast(m),
+                setLabel: (label) => {
+                  const span = btn.querySelector('span');
+                  if (span) span.textContent = label;
+                },
+                onCleanup: (fn) => cleanups.push(fn),
+              });
+            } catch (e) {
+              logEvent('error', 'lens-action', `${la.id} failed`, e);
+              toast(`${la.label} failed: ${errorMessage(e)}`);
+            }
+          })();
+        });
+        buttons.splice(1 + ai, 0, btn); // right after Share, in declared order
+      });
+    }
     actions.replaceChildren(...buttons.filter((b): b is HTMLButtonElement => b !== null));
   }
 
@@ -184,6 +226,7 @@ export function createDetail(app: App, id: string): Screen {
       void load();
     },
     unmount() {
+      for (const fn of cleanups) fn();
       for (const u of urls) URL.revokeObjectURL(u);
     },
   };

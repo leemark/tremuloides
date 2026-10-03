@@ -2,6 +2,19 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.7.0: Ridgeline Score
+1. Pick **Ridgeline Score**. A gold line should follow the skyline (mountains against sky or clouds), with dots where notes are sampled. It updates as you pan.
+2. Take a photo, open it, tap **Play**. You hear the ridgeline as a melody while a gold playhead moves across the photo. Tap **Stop**.
+3. **WAV** and **MIDI** share or download the audio and the MIDI file. Open the MIDI in a DAW: melody on channel 1, sparkles on channel 2.
+4. Lens settings: change **Scale**, **Root**, **Notes** and **Tempo**, take another shot and compare. **New seed** on a photo changes the humanization only.
+5. Import an older photo and apply Ridgeline Score. Its audio is generated from the original.
+6. Scenes with no visible sky fall back to the strongest edge. Note how that sounds.
+
+## v0.6.1: Photo metadata
+1. Take a photo with location on. In Google Photos (album folder, or after Share/Save), swipe up on it: the date/time is right and a map pin with the location appears.
+2. In Files → photo → details (or any EXIF viewer), check that the elevation (GPS altitude) and the "Tremuloides" software tag are present.
+3. Gallery: the gold **Field Log** button in the top bar opens the Field Log.
+
 ## v0.6.0: Phone album
 1. Settings → **Phone album** → **Choose album folder**. In Android's picker, go to **Pictures**, create a folder **Tremuloides**, open it, and tap **Use this folder** → **Allow**. Settings shows "✓ Saving to Tremuloides".
 2. Take a photo. Within a few seconds the Files app shows `Pictures/Tremuloides/tremuloides_…_<lens>_xxxxxx.jpg` plus `…_original.jpg`. The photo's detail screen shows "Album: Saved to phone".

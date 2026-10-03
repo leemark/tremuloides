@@ -1,4 +1,5 @@
 import type { GLKit, RenderTarget } from '../gl/kit';
+import type { Capture } from '../storage/types';
 
 export type ParamValue = number | boolean | string;
 export type Params = Record<string, ParamValue>;
@@ -100,6 +101,32 @@ export interface LensInstance {
   info?(): Record<string, unknown>;
 }
 
+/** Extra buttons a lens can add to the photo screen (e.g. Play, WAV, MIDI, SVG). */
+export interface LensActionContext {
+  capture: Capture;
+  /** The original if kept, else the rendered output. */
+  source(): Promise<Blob>;
+  /** Container of the displayed photo (for overlays such as a playhead). */
+  view: HTMLElement;
+  img: HTMLImageElement;
+  /** e.g. "tremuloides_20261002_160509_ridgeline" */
+  filenameBase: string;
+  share(file: File): Promise<void>;
+  toast(message: string): void;
+  setLabel(label: string): void;
+  /** Runs when the photo screen closes. */
+  onCleanup(fn: () => void): void;
+}
+
+export interface LensAction {
+  id: string;
+  label: string;
+  icon: 'play' | 'audio' | 'midi' | 'svg';
+  run(ctx: LensActionContext): void | Promise<void>;
+}
+
 export interface Lens extends LensMeta {
   create(kit: GLKit): LensInstance;
+  /** Photo-screen actions for captures made with this lens. */
+  actions?: LensAction[];
 }
