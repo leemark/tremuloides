@@ -2,6 +2,11 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.6.1: Photo metadata
+1. Take a photo with location on. In Google Photos (album folder, or after Share/Save), swipe up on it: the date/time is right and a map pin with the location appears.
+2. In Files → photo → details (or any EXIF viewer), check that the elevation (GPS altitude) and the "Tremuloides" software tag are present.
+3. Gallery: the gold **Field Log** button in the top bar opens the Field Log.
+
 ## v0.6.0: Phone album
 1. Settings → **Phone album** → **Choose album folder**. In Android's picker, go to **Pictures**, create a folder **Tremuloides**, open it, and tap **Use this folder** → **Allow**. Settings shows "✓ Saving to Tremuloides".
 2. Take a photo. Within a few seconds the Files app shows `Pictures/Tremuloides/tremuloides_…_<lens>_xxxxxx.jpg` plus `…_original.jpg`. The photo's detail screen shows "Album: Saved to phone".

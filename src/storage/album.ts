@@ -30,6 +30,10 @@ export interface AlbumDeps {
   since(): string | null;
   setSince(iso: string | null): void;
   saveOriginals(): boolean;
+  /** Optional transform before writing (e.g. adding EXIF). */
+  decorate?(blob: Blob, c: Capture, which: 'output' | 'original'): Promise<Blob>;
+  /** True while a capture should wait (e.g. its GPS fix hasn't arrived yet). */
+  defer?(c: Capture): boolean;
 }
 
 export type AlbumState =
@@ -185,7 +189,9 @@ export class PhoneAlbum {
     const p = (await h.queryPermission?.({ mode: 'readwrite' }).catch(() => 'prompt' as const)) ?? 'granted';
     if (p !== 'granted') return 0;
     const caps = await this.deps.listCaptures();
-    const todo = pendingCaptures(caps, all ? '0000' : this.deps.since());
+    const pending = pendingCaptures(caps, all ? '0000' : this.deps.since());
+    const todo = pending.filter((c) => !this.deps.defer?.(c));
+    if (todo.length < pending.length) setTimeout(() => void this.sync(), 10_000); // retry once GPS arrives
     let n = 0;
     for (const c of todo) {
       try {
@@ -204,8 +210,11 @@ export class PhoneAlbum {
   }
 
   private async writeCapture(h: DirHandleLike, c: Capture): Promise<void> {
-    const output = await this.deps.blob(c.outputKey);
-    const original = this.deps.saveOriginals() ? await this.deps.blob(c.originalKey) : undefined;
+    const decorate = this.deps.decorate ?? (async (b: Blob) => b);
+    const rawOut = await this.deps.blob(c.outputKey);
+    const rawOrig = this.deps.saveOriginals() ? await this.deps.blob(c.originalKey) : undefined;
+    const output = rawOut ? await decorate(rawOut, c, 'output') : undefined;
+    const original = rawOrig ? await decorate(rawOrig, c, 'original') : undefined;
     const names = albumFilenames(c, original?.type);
     if (output) await writeFile(h, names.output, output);
     if (original) await writeFile(h, names.original, original);

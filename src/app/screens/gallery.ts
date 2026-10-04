@@ -2,6 +2,7 @@ import type { App, Screen } from '../app';
 import { h, ICONS, iconButton, toast } from '../ui';
 import { dayKey, exportFilename, formatDayHeading } from '../../util/format';
 import { shareFiles } from '../share';
+import { withExif } from '../export';
 import type { Capture } from '../../storage/types';
 import { logEvent } from '../../diagnostics/log';
 
@@ -15,7 +16,7 @@ export function createGallery(app: App): Screen {
   const grid = h('div', { class: 'gallery-grid' });
   const empty = h('div', { class: 'empty-state', hidden: true }, h('p', { text: 'No photos yet.' }), h('p', { class: 'muted', text: 'Captures and imports appear here.' }));
   const selectBtn = iconButton(ICONS.select, 'Select photos', () => toggleSelect());
-  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: 'Gallery' }), iconButton(ICONS.log, 'Field Log', () => app.navigate({ name: 'fieldlog' })), selectBtn);
+  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: 'Gallery' }), h('button', { class: 'btn btn-small fl-open', html: `${ICONS.log}<span>Field Log</span>`, onclick: () => app.navigate({ name: 'fieldlog' }) }), selectBtn);
   const shareSelected = h('button', { class: 'btn btn-primary', text: 'Share', onclick: () => void shareSelection() });
   const selectBar = h(
     'div',
@@ -42,7 +43,8 @@ export function createGallery(app: App): Screen {
   async function shareSelection() {
     const files: File[] = [];
     for (const c of captures.filter((c) => selected.has(c.id))) {
-      const blob = await s.store.blob(c.outputKey);
+      const raw = await s.store.blob(c.outputKey);
+      const blob = raw ? await withExif(raw, c, 'output') : undefined;
       if (blob) files.push(new File([blob], exportFilename(new Date(c.createdAt), c.lensId, c.outputType === 'image/png' ? 'png' : 'jpg'), { type: blob.type }));
     }
     const result = await shareFiles(files);
