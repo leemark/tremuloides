@@ -477,7 +477,7 @@ Turns the skyline of the photo into music.
 - **Styles:** USGS (brown `#8B5A2B` on cream `#F4EEDC`, with a blue tint for sky regions), Night (gold on ink), Blueprint.
 - **Hillshade underlay** toggle.
 - **Exports:** PNG, and a **plotter-ready SVG** (one path per level, grouped and labeled by level).
-- **Realtime preview:** a GPU iso-line approximation (fract-based lines with screen-space derivatives). The final render uses the vector contours.
+- **Realtime preview:** a GPU iso-line approximation (fract-based lines with screen-space derivatives). *(v0.8.0: the final raster render uses the same GPU path at full resolution so it matches the preview exactly; the worker-built vector contours drive the SVG export.)*
 
 ## 15. Backlog (not scheduled)
 

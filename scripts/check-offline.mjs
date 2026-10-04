@@ -25,6 +25,7 @@ try {
 // 1. No external URLs in shipped text assets (except non-fetching identifiers).
 const ALLOWED = [
   /^http:\/\/www\.w3\.org\//, // SVG / XML namespaces
+  /^http:\/\/www\.inkscape\.org\/namespaces\/inkscape$/, // SVG layer namespace in Topo exports (not fetched)
   /^https?:\/\/github\.com\/leemark\/tremuloides/, // project link (not fetched)
   /^https:\/\/bit\.ly\/wb-/, // Workbox console-warning doc links (never fetched)
 ];

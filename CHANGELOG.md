@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.8.0 (2026-10-03)
+- New Topo lens: reads light as elevation and draws the scene as a contour map, with thicker index lines every fifth level
+- Three styles: USGS quad (brown on cream, blue sky), Night (gold on ink) and Blueprint, plus optional shaded relief
+- SVG button on Topo photos exports plotter-ready contours, one layer per level
+
 ## v0.7.0 (2026-10-03)
 - New Ridgeline Score lens: traces the skyline and turns it into a melody, with bright autumn color adding mallet sparkles
 - On a saved photo: Play (with a playhead moving across the picture), WAV and MIDI export

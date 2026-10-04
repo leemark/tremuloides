@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.8.0: Topo
+1. Pick **Topo**. The viewfinder becomes a contour map: brown lines on cream, sky tinted blue, with thicker lines every fifth level. It should stay smooth while you pan.
+2. Try **Smoothing** (0 is busy, 15+ is calm and rounded) and **Contour levels**. Lines should keep the same thickness at any setting.
+3. Switch **Style** to Night and to Blueprint, and toggle **Hillshade**.
+4. Take a photo and open it. It should look like the viewfinder, at full resolution.
+5. Tap **SVG**. After "Tracing contours…" it should share or download a `.svg`. Open it in Inkscape or a browser: there's one layer per level plus a Background layer.
+6. With **Keep originals** off, SVG says it needs the original.
+
 ## v0.7.0: Ridgeline Score
 1. Pick **Ridgeline Score**. A gold line should follow the skyline (mountains against sky or clouds), with dots where notes are sampled. It updates as you pan.
 2. Take a photo, open it, tap **Play**. You hear the ridgeline as a melody while a gold playhead moves across the photo. Tap **Stop**.
