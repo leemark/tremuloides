@@ -24,6 +24,8 @@ Run npm run check, update docs/TESTING.md and CHANGELOG.md, bump the version, an
 
 ## M5 Stained Glass: done in v0.5.0
 
+## M6 Flow Painter: done in v0.9.0
+
 ## M7 Ridgeline Score: done in v0.7.0
 
 ## M8 Topo: done in v0.8.0

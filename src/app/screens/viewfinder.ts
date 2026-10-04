@@ -49,7 +49,7 @@ export function createViewfinder(app: App): Screen {
   const flash = h('div', { class: 'flash' });
   const fpsEl = h('div', { class: 'fps-overlay', hidden: true });
   const compareBadge = h('div', { class: 'compare-badge', text: 'Original', hidden: true });
-  const stillBadge = h('div', { class: 'still-badge', text: 'Renders after capture', hidden: true });
+  const stillBadge = h('div', { class: 'still-badge', text: 'Full detail paints after capture', hidden: true });
   const notice = h('div', { class: 'notice', hidden: true });
   stage.append(flash, compareBadge, stillBadge, fpsEl, notice);
 
@@ -454,7 +454,9 @@ export function createViewfinder(app: App): Screen {
 
   function updateSaving(pending: number) {
     saving.hidden = pending === 0;
-    saving.textContent = pending > 1 ? `Saving… (${pending})` : 'Saving…';
+    const pct = s.busy.progress;
+    const what = pct !== null ? `Painting… ${Math.round(pct * 100)}%` : 'Saving…';
+    saving.textContent = pending > 1 ? `${what} (${pending})` : what;
   }
 
   const onVisibility = () => {
@@ -473,6 +475,7 @@ export function createViewfinder(app: App): Screen {
         notice.hidden = false;
       }
       cleanups.push(s.queue.onChange(updateSaving));
+      cleanups.push(s.busy.onProgress(() => updateSaving(s.queue.size)));
       updateSaving(s.queue.size);
       document.addEventListener('visibilitychange', onVisibility);
       cleanups.push(() => document.removeEventListener('visibilitychange', onVisibility));

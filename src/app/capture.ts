@@ -48,8 +48,9 @@ export async function processAndSave(s: Services, o: ProcessOptions): Promise<Ca
     const sized = await decodeForRender(o.bitmap, maxRenderEdge(settings, renderer.maxTextureSize));
     let rendered;
     try {
-      rendered = await renderToImage(renderer, sized, o.lens, o.params, o.seed, settings.exportFormat);
+      rendered = await renderToImage(renderer, sized, o.lens, o.params, o.seed, settings.exportFormat, (f) => s.busy.setProgress(f));
     } finally {
+      s.busy.setProgress(null);
       sized.close();
       o.bitmap.close();
     }

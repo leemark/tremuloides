@@ -180,6 +180,40 @@ export class GLKit {
   /** Draws a fullscreen triangle with `program` into `target`. */
   draw(program: Program, target: RenderTarget, opts: DrawOptions = {}): void {
     const gl = this.gl;
+    this.bind(program, target, opts);
+    gl.bindVertexArray(this.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.bindVertexArray(null);
+  }
+
+  /**
+   * Instanced triangle strips with no vertex attributes: the vertex shader builds geometry from
+   * gl_VertexID / gl_InstanceID. Optional standard alpha blending, switched off again afterwards.
+   */
+  drawInstanced(program: Program, target: RenderTarget, opts: DrawOptions, vertices: number, instances: number, blend = false): void {
+    const gl = this.gl;
+    this.bind(program, target, opts);
+    if (blend) {
+      gl.enable(gl.BLEND);
+      gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    }
+    gl.bindVertexArray(this.vao);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, vertices, instances);
+    gl.bindVertexArray(null);
+    if (blend) gl.disable(gl.BLEND);
+  }
+
+  /** Clears a target to an RGB color (opaque). */
+  clear(target: RenderTarget, rgb: readonly number[]): void {
+    const gl = this.gl;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
+    gl.viewport(0, 0, target.width, target.height);
+    gl.clearColor(rgb[0] ?? 0, rgb[1] ?? 0, rgb[2] ?? 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  private bind(program: Program, target: RenderTarget, opts: DrawOptions): void {
+    const gl = this.gl;
     gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
     if (opts.viewport) gl.viewport(opts.viewport[0], opts.viewport[1], opts.viewport[2], opts.viewport[3]);
     else gl.viewport(0, 0, target.width, target.height);
@@ -213,9 +247,6 @@ export class GLKit {
       const loc = program.loc(name) ?? program.loc(`${name}[0]`);
       if (loc !== null) gl.uniform3fv(loc, value);
     }
-    gl.bindVertexArray(this.vao);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-    gl.bindVertexArray(null);
   }
 
   /**

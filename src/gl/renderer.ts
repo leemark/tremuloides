@@ -261,6 +261,7 @@ export class Renderer {
     lens: Lens,
     params: Params,
     seed: number,
+    onProgress?: (fraction: number) => void,
   ): Promise<ImageData> {
     if (this.isLost) throw new Error('Graphics context was lost; try again in a moment.');
     const kit = this.kit;
@@ -270,7 +271,7 @@ export class Renderer {
       kit.upload(tex, source);
       target = kit.createTarget(width, height);
       await this.instance(lens).render(
-        { input: tex, inputWidth: width, inputHeight: height, width, height, params, seed, quality: 'final' },
+        { input: tex, inputWidth: width, inputHeight: height, width, height, params, seed, quality: 'final', ...(onProgress ? { onProgress } : {}) },
         target,
       );
       const pixels = kit.readPixels(target);

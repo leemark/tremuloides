@@ -32,6 +32,20 @@ export class Busy {
     }
   }
 
+  private progressListeners = new Set<(fraction: number | null) => void>();
+  /** Progress of the current long render (e.g. Flow Painter), or null when none reports progress. */
+  progress: number | null = null;
+
+  setProgress(fraction: number | null): void {
+    this.progress = fraction === null ? null : Math.min(1, Math.max(0, fraction));
+    for (const fn of this.progressListeners) fn(this.progress);
+  }
+
+  onProgress(fn: (fraction: number | null) => void): () => void {
+    this.progressListeners.add(fn);
+    return () => this.progressListeners.delete(fn);
+  }
+
   onChange(fn: (busy: boolean) => void): () => void {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
