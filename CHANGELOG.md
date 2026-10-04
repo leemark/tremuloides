@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.8.1 (2026-10-03)
+- Fixed "Choose album folder" failing with "Illegal invocation"
+
 ## v0.8.0 (2026-10-03)
 - New Topo lens: reads light as elevation and draws the scene as a contour map, with thicker index lines every fifth level
 - Three styles: USGS quad (brown on cream, blue sky), Night (gold on ink) and Blueprint, plus optional shaded relief

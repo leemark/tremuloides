@@ -69,6 +69,15 @@ export function pendingCaptures(caps: readonly Capture[], since: string | null):
  * Uses the File System Access API (Chrome on Android 132+). Everything is best-effort: the
  * in-app copy is always kept, and anything not yet written is retried on the next sync.
  */
+/**
+ * The browser's folder picker, bound to window. Calling the bare function with any other
+ * `this` (e.g. as `this.picker(...)`) throws "Illegal invocation" in Chrome.
+ */
+export function nativePicker(scope: unknown = globalThis): PickerFn | undefined {
+  const fn = (scope as { showDirectoryPicker?: PickerFn }).showDirectoryPicker;
+  return typeof fn === 'function' ? (fn.bind(scope) as PickerFn) : undefined;
+}
+
 export class PhoneAlbum {
   private handle: DirHandleLike | null = null;
   private loaded = false;
@@ -80,7 +89,7 @@ export class PhoneAlbum {
 
   constructor(
     private readonly deps: AlbumDeps,
-    private readonly picker: PickerFn | undefined = (globalThis as unknown as { showDirectoryPicker?: PickerFn }).showDirectoryPicker,
+    private readonly picker: PickerFn | undefined = nativePicker(),
   ) {}
 
   get supported(): boolean {

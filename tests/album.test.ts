@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PhoneAlbum, albumFilenames, extFor, pendingCaptures, type AlbumDeps, type DirHandleLike, type PermissionStateLike } from '../src/storage/album';
+import { PhoneAlbum, nativePicker, albumFilenames, extFor, pendingCaptures, type AlbumDeps, type DirHandleLike, type PermissionStateLike } from '../src/storage/album';
 import type { Capture } from '../src/storage/types';
 
 function cap(id: string, createdAt: string, extra: Partial<Capture> = {}): Capture {
@@ -121,6 +121,21 @@ describe('phone album', () => {
     await album.turnOff();
     expect(env.getHandle()).toBeUndefined();
     expect((await album.state()).status).toBe('off');
+  });
+
+  it('calls the native picker with window as this (no Illegal invocation)', async () => {
+    const dir = { name: "x" } as unknown as DirHandleLike;
+    const fakeWindow = {
+      showDirectoryPicker(this: unknown) {
+        if (this !== fakeWindow) throw new TypeError('Illegal invocation');
+        return Promise.resolve(dir);
+      },
+    };
+    const picker = nativePicker(fakeWindow);
+    expect(picker).toBeDefined();
+    const holder = { picker };
+    await expect(holder.picker?.({ mode: 'readwrite' })).resolves.toBe(dir);
+    expect(nativePicker({})).toBeUndefined();
   });
 
   it('reports unsupported browsers', async () => {
