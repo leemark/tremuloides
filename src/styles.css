@@ -1222,3 +1222,13 @@ select {
   border-color: rgba(233, 184, 37, 0.45);
   background: transparent;
 }
+
+.playhead {
+  position: absolute;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(233, 184, 37, 0.9);
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
