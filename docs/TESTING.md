@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.9.0: Flow Painter
+1. Pick **Flow Painter**. The viewfinder shows a live painting with a "Full detail paints after capture" badge. Note whether panning feels smooth.
+2. Take a photo. The indicator shows **Painting… N%**, then Saving…. Time it, roughly.
+3. Open the photo. It should look like an oil painting with more fine detail than the viewfinder. Strokes follow ridges, trunks and clouds.
+4. Tap **New seed**. Every stroke moves, but the picture stays the same.
+5. In Import or Re-edit, try **Layers** 1 and 4, **Detail** 2, a long **Stroke length**, and **Canvas tone** Raw umber. The Render button counts up.
+6. While a painting renders, keep using the viewfinder. It should stay responsive.
+
 ## v0.8.1: Album folder picker fix
 1. Settings → Phone album → **Choose album folder**. The folder picker opens (no "Illegal invocation" toast).
 2. Pick or create Pictures › Tremuloides and allow access. Status shows "✓ Saving to …".

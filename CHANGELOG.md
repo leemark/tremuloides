@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.9.0 (2026-10-03)
+- New Flow Painter lens: paints your photo in brush strokes that follow ridgelines, trunks and clouds, coarse to fine
+- Adjust detail, stroke length and width, color jitter, number of layers and canvas tone; New seed repaints it
+- The viewfinder shows the painting live; full detail paints after the shutter, with a "Painting… %" indicator
+
 ## v0.8.1 (2026-10-03)
 - Fixed "Choose album folder" failing with "Illegal invocation"
 

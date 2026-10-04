@@ -138,6 +138,9 @@ export function createEditor(app: App, input: EditorInput): Screen {
     saving = true;
     saveBtn.disabled = true;
     saveBtn.textContent = 'Rendering…';
+    const stopProgress = s.busy.onProgress((f) => {
+      if (f !== null) saveBtn.textContent = `Painting… ${Math.round(f * 100)}%`;
+    });
     try {
       const bitmap = await createImageBitmap(input.blob, { imageOrientation: 'from-image' });
       const capture = await processAndSave(s, {
@@ -161,6 +164,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
       saveBtn.disabled = false;
       saveBtn.textContent = 'Render & save';
     } finally {
+      stopProgress();
       saving = false;
     }
   }

@@ -63,9 +63,10 @@ export async function renderToImage(
   params: Params,
   seed: number,
   format: Settings['exportFormat'],
+  onProgress?: (fraction: number) => void,
 ): Promise<RenderedImage> {
   const { width, height } = bitmap;
-  const pixels = await renderer.renderFinal(bitmap, width, height, lens, params, seed);
+  const pixels = await renderer.renderFinal(bitmap, width, height, lens, params, seed, onProgress);
   const canvas = makeCanvas(width, height);
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
   if (!ctx) throw new Error('2D canvas unavailable');
