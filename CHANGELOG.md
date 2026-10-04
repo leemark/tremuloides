@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.9.1 (2026-10-04)
+- Flow Painter: fixed strokes going flat and horizontal on some phones; they now follow edges and shapes as intended
+- Fewer light specks on dark areas
+
 ## v0.9.0 (2026-10-03)
 - New Flow Painter lens: paints your photo in brush strokes that follow ridgelines, trunks and clouds, coarse to fine
 - Adjust detail, stroke length and width, color jitter, number of layers and canvas tone; New seed repaints it
