@@ -2,6 +2,11 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.8.1: Album folder picker fix
+1. Settings → Phone album → **Choose album folder**. The folder picker opens (no "Illegal invocation" toast).
+2. Pick or create Pictures › Tremuloides and allow access. Status shows "✓ Saving to …".
+3. Take a photo, then check Google Photos → Photos on device for it (and its _original).
+
 ## v0.8.0: Topo
 1. Pick **Topo**. The viewfinder becomes a contour map: brown lines on cream, sky tinted blue, with thicker lines every fifth level. It should stay smooth while you pan.
 2. Try **Smoothing** (0 is busy, 15+ is calm and rounded) and **Contour levels**. Lines should keep the same thickness at any setting.
