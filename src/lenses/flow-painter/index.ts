@@ -12,6 +12,8 @@ import WASH from './shaders/wash.frag.glsl?raw';
 
 const PREVIEW_FIELD_EDGE = 512;
 const FINAL_FIELD_EDGE = 1024;
+/** Gradients below this (Oklab L per reference px) count as flat; flat areas paint horizontally. */
+const FLAT_GRADIENT = 0.0015;
 
 export const CANVAS_TONES: Record<string, string> = {
   linen: '#e8dcc4',
@@ -35,7 +37,7 @@ export const flowPainterLens: Lens = {
   id: 'flow-painter',
   name: 'Flow Painter',
   tagline: 'Brush strokes that follow the shapes in the scene',
-  version: 1,
+  version: 2,
   kind: 'still', // the viewfinder shows the coarse layers; full detail paints after capture
   seeded: true,
   params: [
@@ -89,7 +91,7 @@ export const flowPainterLens: Lens = {
       const fieldRef = refScale(fw, fh);
       kit.draw(p.tensor, t.a, {
         textures: { u_src: t.src.tex as WebGLTexture },
-        uniforms: { u_texel: [1 / fw, 1 / fh], u_lod: Math.max(0, Math.log2(W / fw)), u_gradScale: fieldRef },
+        uniforms: { u_texel: [1 / fw, 1 / fh], u_lod: Math.max(0, Math.log2(W / fw)), u_gradScale: fieldRef, u_flat: FLAT_GRADIENT },
       });
       const sigma = Math.min(24, Math.max(4, 2 * Number(req.params.strokeWidth))) * fieldRef;
       kit.draw(p.blur, t.b, { textures: { u_src: t.a.tex as WebGLTexture }, uniforms: { u_dir: [1 / fw, 0], u_sigma: sigma } });
@@ -122,8 +124,8 @@ export const flowPainterLens: Lens = {
             u_accept: 0.06 / detail,
             u_jitter: Number(req.params.jitter),
             u_edgeStop: layer.prevLod < 0 ? 0.45 : 0.28,
-            u_flatEnergy: 0.0015,
             u_bristles: Math.max(3, layer.width / 1.6),
+            u_dry: layer.prevLod < 0 ? 0.1 : 0.4,
           },
           ints: {
             u_cols: layer.cols,

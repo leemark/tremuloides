@@ -2,6 +2,10 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.9.1: Flow Painter phone fix
+1. Re-edit the hotel-room photo with Flow Painter at **default** settings. Strokes should run up the cabinet doors and around the legs and blanket, not as flat horizontal blocks with stair-step edges.
+2. Compare it with your v0.9.0 version in the gallery.
+
 ## v0.9.0: Flow Painter
 1. Pick **Flow Painter**. The viewfinder shows a live painting with a "Full detail paints after capture" badge. Note whether panning feels smooth.
 2. Take a photo. The indicator shows **Painting… N%**, then Saving…. Time it, roughly.

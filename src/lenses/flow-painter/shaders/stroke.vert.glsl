@@ -1,7 +1,7 @@
 // One brush stroke per instance, built as a triangle strip along the flow field.
 // No vertex attributes: position, color and shape all come from hashes of the stroke index.
 uniform sampler2D u_src;    // mipmapped copy of the photo (image space, v = 0 at top)
-uniform sampler2D u_tensor; // smoothed structure tensor (Jxx, Jyy, Jxy)
+uniform sampler2D u_tensor; // smoothed doubled-angle orientation, encoded v · 0.5 + 0.5 (see tensor.frag)
 uniform vec2 u_size;        // output px
 uniform int u_cols;
 uniform int u_count;
@@ -18,7 +18,6 @@ uniform float u_prevLod;    // < 0: paint everywhere
 uniform float u_accept;     // color difference a finer stroke must add
 uniform float u_jitter;
 uniform float u_edgeStop;   // strokes stop where the color changes by more than this
-uniform float u_flatEnergy; // gradient energy below which flow falls back to horizontal
 
 out vec2 v_st;          // s along the stroke 0–1, t across −1…1
 out vec3 v_color;
@@ -33,16 +32,13 @@ uint hash(uint x) {
 float rnd(inout uint s) { s = hash(s); return float(s >> 8) / 16777216.0; }
 
 vec2 flowAt(vec2 px) {
-  vec3 j = texture(u_tensor, px / u_size).xyz;
-  float diff = j.x - j.y;
-  float root = sqrt(diff * diff + 4.0 * j.z * j.z);
-  float tr = j.x + j.y;
-  float coherence = root / (tr + 1e-7);
-  // Major eigenvector = gradient direction; the flow runs perpendicular to it.
-  float ang = 0.5 * atan(2.0 * j.z, diff);
-  vec2 t = vec2(-sin(ang), cos(ang));
+  vec2 v = texture(u_tensor, px / u_size).xy * 2.0 - 1.0;
+  // |v| combines edge strength and how consistently edges line up; the gradient angle is half of v's.
+  float strength = length(v);
+  float ang = 0.5 * atan(v.y, v.x);
+  vec2 t = vec2(-sin(ang), cos(ang)); // flow runs perpendicular to the gradient
   if (t.x < 0.0) t = -t;
-  float w = smoothstep(0.08, 0.35, coherence) * smoothstep(u_flatEnergy, u_flatEnergy * 4.0, sqrt(max(tr, 0.0)));
+  float w = smoothstep(0.05, 0.25, strength);
   vec2 d = mix(vec2(1.0, 0.0), t, w);
   float len = length(d);
   return len > 1e-4 ? d / len : vec2(1.0, 0.0);

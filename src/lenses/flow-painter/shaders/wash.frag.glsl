@@ -6,5 +6,5 @@ uniform float u_lod;
 uniform vec3 u_tone;
 void main() {
   vec3 c = textureLod(u_src, v_uv, u_lod).rgb;
-  outColor = vec4(mix(u_tone, c, 0.6), 1.0);
+  outColor = vec4(mix(u_tone, c, 0.8), 1.0);
 }
