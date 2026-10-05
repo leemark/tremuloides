@@ -35,3 +35,14 @@ describe('settings', () => {
     expect(s.flag('lastSeenVersion')).toBe('0.1.0');
   });
 });
+
+describe('video settings', () => {
+  it('rejects unknown capture modes and clip lengths', async () => {
+    const { SettingsStore } = await import('../src/storage/settings');
+    const mem = new Map<string, string>([['trem:settings', JSON.stringify({ captureMode: 'film', videoSeconds: 7, videoSound: true })]]);
+    const st = new SettingsStore({ getItem: (k) => mem.get(k) ?? null, setItem: (k, v) => void mem.set(k, v), removeItem: (k) => void mem.delete(k) });
+    expect(st.get().captureMode).toBe('photo');
+    expect(st.get().videoSeconds).toBe(10);
+    expect(st.get().videoSound).toBe(true);
+  });
+});

@@ -22,6 +22,7 @@ More are planned in [PRD.md](PRD.md) §14: Flow Painter and Topo.
 
 ## Using it
 - **Shutter** takes a full-resolution photo through the current lens.
+- **Video** (live lenses such as Ink & Wash, Stained Glass, Posterize): switch to *Video* above the shutter, tap *5 s / 10 s / 15 s* to pick a length, and tap the red shutter. The clip records exactly what the viewfinder shows (MP4 where supported, otherwise WebM). You can swipe to another lens mid-clip. Sound is optional (Settings).
 - **Swipe** sideways on the viewfinder to change lens. **Press and hold** to see the unprocessed original.
 - **Tap the lens name** to adjust its settings. Settings are remembered per lens.
 - **Import** applies a lens to a photo that's already on your phone.

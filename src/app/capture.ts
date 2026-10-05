@@ -103,6 +103,62 @@ function imageDataCanvas(img: ImageData): OffscreenCanvas | HTMLCanvasElement {
   return c;
 }
 
+/** A small dark placeholder when no frame could be grabbed for a clip's thumbnail. */
+async function placeholderThumb(): Promise<Blob> {
+  const c = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(16, 16) : Object.assign(document.createElement('canvas'), { width: 16, height: 16 });
+  const ctx = c.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+  if (ctx) {
+    ctx.fillStyle = '#24262b';
+    ctx.fillRect(0, 0, 16, 16);
+  }
+  return canvasToBlob(c, 'image/jpeg', 0.8);
+}
+
+/** Saves a recorded lens video clip. */
+export async function saveClip(
+  s: Services,
+  o: {
+    blob: Blob;
+    type: string;
+    durationMs: number;
+    width: number;
+    height: number;
+    thumb: Blob | null;
+    lens: Lens;
+    params: Params;
+    seed: number;
+    createdAt: string;
+    geo?: Promise<GeoTag | null> | null;
+  },
+): Promise<Capture> {
+  return s.busy.run(async () => {
+    const thumb = o.thumb ?? (await placeholderThumb());
+    const id = newId();
+    const capture = await s.store.save(
+      {
+        id,
+        createdAt: o.createdAt,
+        source: 'camera',
+        outputType: o.type,
+        lensId: o.lens.id,
+        lensVersion: o.lens.version,
+        params: o.params,
+        seed: o.seed,
+        width: o.width,
+        height: o.height,
+        captureMethod: 'video-clip',
+        durationMs: Math.round(o.durationMs),
+        appVersion: APP_VERSION,
+      },
+      { output: o.blob, thumb },
+    );
+    void o.geo?.then(async (geo) => {
+      if (geo) await s.store.setGeo(id, geo).catch((e: unknown) => logEvent('warn', 'geo', 'Could not save location', e));
+    });
+    return capture;
+  });
+}
+
 /** Saves an already-rendered temporal capture (burst / slit-scan). */
 export async function saveCaptureResult(
   s: Services,

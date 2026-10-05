@@ -489,6 +489,7 @@ Turns the skyline of the photo into music.
 - **B5.** Lens presets, and shareable preset links.
 - **B6.** Batch re-render of a selection with a new lens.
 - **B7.** WebGPU code path.
+- **Done in v0.10.0: lens video clips.** 5/10/15 s MediaRecorder clips of the live viewfinder for realtime lenses (`src/app/video.ts`), stored as captures with `outputType` video/*.
 - **B8.** Dual-lens blend, e.g. Topo lines over Ink & Wash.
 
 ## 16. Assumptions and open questions

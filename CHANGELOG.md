@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.10.0 (2026-10-04)
+- Video clips: for live lenses (Ink & Wash, Stained Glass, Posterize, Topo and more), switch to Video above the shutter and record 5, 10 or 15 seconds with the effect applied
+- Swipe to another lens mid-clip for an instant transition
+- Clips play in the gallery, share and save as MP4, and go to your phone album
+- Optional sound: Settings → Record sound with videos
+
 ## v0.9.1 (2026-10-04)
 - Flow Painter: fixed strokes going flat and horizontal on some phones; they now follow edges and shapes as intended
 - Fewer light specks on dark areas

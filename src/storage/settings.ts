@@ -13,6 +13,12 @@ export interface Settings {
   currentLens: string;
   /** Also write originals into the phone album folder. */
   albumOriginals: boolean;
+  /** Viewfinder mode for live lenses. */
+  captureMode: 'photo' | 'video';
+  /** Clip length in seconds (5, 10 or 15). */
+  videoSeconds: number;
+  /** Record microphone sound with clips. */
+  videoSound: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,6 +31,9 @@ export const DEFAULT_SETTINGS: Settings = {
   fpsOverlay: false,
   currentLens: 'ink-wash',
   albumOriginals: true,
+  captureMode: 'photo',
+  videoSeconds: 10,
+  videoSound: false,
 };
 
 /** Minimal synchronous key/value store (localStorage), safe when storage is unavailable. */
@@ -74,6 +83,8 @@ export class SettingsStore {
         }
       }
       if (![2048, 4096, 0].includes(merged.maxRenderEdge)) merged.maxRenderEdge = DEFAULT_SETTINGS.maxRenderEdge;
+      if (merged.captureMode !== 'photo' && merged.captureMode !== 'video') merged.captureMode = DEFAULT_SETTINGS.captureMode;
+      if (![5, 10, 15].includes(merged.videoSeconds)) merged.videoSeconds = DEFAULT_SETTINGS.videoSeconds;
       return merged;
     } catch {
       return { ...DEFAULT_SETTINGS };
