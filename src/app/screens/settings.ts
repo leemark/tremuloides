@@ -190,6 +190,7 @@ export function createSettings(app: App): Screen {
       { value: 'video', label: 'Video frame' },
     ], 'Use “Video frame” if photos come out rotated or fail'),
     toggle('locationTagging', 'Location tagging', 'Saves GPS position and elevation (works offline)'),
+    toggle('videoSound', 'Record sound with videos', 'Uses the microphone; Android asks the first time'),
     toggle('keepScreenOn', 'Keep screen on', 'While the viewfinder is open'),
   );
 

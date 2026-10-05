@@ -2,6 +2,15 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.10.0: Video clips
+1. Pick **Ink & Wash**. Above the shutter, tap **Video**. The shutter turns red, and a **10 s** chip appears; tap it to cycle 5 / 10 / 15 s.
+2. Tap the shutter. The indicator counts "● 0:03 / 0:10". It stops by itself, or tap again to stop early.
+3. Open the Gallery. The tile shows **▶ 0:10**. Open it: the clip plays (muted; tap the speaker for sound). Try **Share** and **Save**.
+4. Record again and swipe to Stained Glass halfway through. The clip should switch lenses.
+5. Settings → turn on **Record sound with videos** and record a clip. Android asks for the microphone once.
+6. With the phone album on, check Google Photos for the `.mp4`.
+7. Flow Painter and Quake don't show the Photo/Video switch (they aren't live lenses).
+
 ## v0.9.1: Flow Painter phone fix
 1. Re-edit the hotel-room photo with Flow Painter at **default** settings. Strokes should run up the cabinet doors and around the legs and blanket, not as flat horizontal blocks with stair-step edges.
 2. Compare it with your v0.9.0 version in the gallery.

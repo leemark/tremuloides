@@ -3,6 +3,8 @@ import { h, ICONS, iconButton, toast } from '../ui';
 import { dayKey, exportFilename, formatDayHeading } from '../../util/format';
 import { shareFiles } from '../share';
 import { withExif } from '../export';
+import { extFor } from '../../storage/album';
+import { clock, isVideoType } from '../video';
 import type { Capture } from '../../storage/types';
 import { logEvent } from '../../diagnostics/log';
 
@@ -45,7 +47,7 @@ export function createGallery(app: App): Screen {
     for (const c of captures.filter((c) => selected.has(c.id))) {
       const raw = await s.store.blob(c.outputKey);
       const blob = raw ? await withExif(raw, c, 'output') : undefined;
-      if (blob) files.push(new File([blob], exportFilename(new Date(c.createdAt), c.lensId, c.outputType === 'image/png' ? 'png' : 'jpg'), { type: blob.type }));
+      if (blob) files.push(new File([blob], exportFilename(new Date(c.createdAt), c.lensId, extFor(c.outputType)), { type: blob.type || c.outputType }));
     }
     const result = await shareFiles(files);
     if (result === 'downloaded') toast(`Saved ${files.length} file${files.length === 1 ? '' : 's'} to Downloads`);
@@ -73,7 +75,9 @@ export function createGallery(app: App): Screen {
         section = h('div', { class: 'tiles' });
         grid.append(h('h2', { class: 'day-heading', text: formatDayHeading(day) }), section);
       }
-      const tile = h('button', { class: 'tile', 'aria-label': `Photo from ${new Date(c.createdAt).toLocaleString()}` });
+      const clip = isVideoType(c.outputType);
+      const tile = h('button', { class: `tile${clip ? ' tile-video' : ''}`, 'aria-label': `${clip ? 'Video' : 'Photo'} from ${new Date(c.createdAt).toLocaleString()}` });
+      if (clip) tile.append(h('span', { class: 'tile-badge', text: c.durationMs ? `▶ ${clock(Math.round(c.durationMs / 1000))}` : '▶' }));
       tile.addEventListener('click', () => {
         if (selecting) {
           if (selected.has(c.id)) selected.delete(c.id);

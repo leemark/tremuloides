@@ -353,7 +353,7 @@ button {
 
 .saving {
   position: absolute;
-  bottom: calc(var(--safe-bottom) + 132px);
+  bottom: calc(var(--safe-bottom) + 172px);
   left: 50%;
   transform: translateX(-50%);
   padding: 6px 14px;
@@ -1091,7 +1091,7 @@ select {
 
 .rec-indicator {
   position: absolute;
-  bottom: calc(var(--safe-bottom) + 150px);
+  bottom: calc(var(--safe-bottom) + 172px);
   left: 50%;
   transform: translateX(-50%);
   padding: 6px 14px;
@@ -1231,4 +1231,77 @@ select {
   box-shadow: 0 0 8px rgba(233, 184, 37, 0.9);
   pointer-events: none;
   transition: opacity 0.2s;
+}
+
+/* ---------- Video clips ---------- */
+
+.mode-bar {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 126px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-bar[hidden] {
+  display: none;
+}
+
+.mode-seg {
+  display: flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(14, 15, 17, 0.7);
+}
+
+.mode-btn,
+.mode-dur {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  min-height: 32px;
+}
+
+.mode-btn.on {
+  background: var(--gold);
+  color: #17181b;
+}
+
+.mode-dur {
+  background: rgba(14, 15, 17, 0.7);
+  color: #ff9a88;
+  font-variant-numeric: tabular-nums;
+}
+
+.mode-dur[hidden] {
+  display: none;
+}
+
+.shutter.video .shutter-inner {
+  background: #e0533d;
+}
+
+.detail-video {
+  background: #000;
+}
+
+.tile-badge {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(14, 15, 17, 0.75);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }

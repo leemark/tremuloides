@@ -5,11 +5,27 @@ import { AdaptiveScale } from '../../gl/adaptive';
 import { LENSES, adjacentLens, getLens } from '../../lenses/registry';
 import { defaultParams } from '../../lenses/params';
 import type { Lens, Params } from '../../lenses/types';
-import { currentLensState, processAndSave, saveCaptureResult } from '../capture';
+import { currentLensState, processAndSave, saveCaptureResult, saveClip } from '../capture';
+import { makeThumb } from '../pipeline';
+import { ClipRecorder, clock, nextDuration, videoSupported } from '../video';
 import { paramControls } from '../params-ui';
 import { getPosition } from '../geo';
 import { randomSeed } from '../../util/prng';
 import { logEvent, errorMessage } from '../../diagnostics/log';
+
+interface ClipState {
+  rec: ClipRecorder;
+  lens: Lens;
+  params: Params;
+  seed: number;
+  seconds: number;
+  createdAt: string;
+  geo: ReturnType<typeof getPosition> | null;
+  started: boolean;
+  stopping: boolean;
+  thumb: Promise<Blob | null> | null;
+  endBusy: () => void;
+}
 
 interface WakeLockSentinelLike {
   release(): Promise<void>;
@@ -38,6 +54,9 @@ export function createViewfinder(app: App): Screen {
     started: number;
     endBusy: () => void;
   } | null = null;
+  /** Lens video clip in progress (live lenses in Video mode). */
+  let clip: ClipState | null = null;
+  const canVideo = videoSupported();
   let wakeLock: WakeLockSentinelLike | null = null;
   let sheet: SheetHandle | null = null;
   let thumbUrl: string | null = null;
@@ -79,15 +98,51 @@ export function createViewfinder(app: App): Screen {
   );
   const saving = h('div', { class: 'saving', hidden: true, role: 'status' });
   const recordingEl = h('div', { class: 'rec-indicator', hidden: true, role: 'status' });
+  const photoBtn = h('button', { class: 'mode-btn', role: 'radio', text: 'Photo', onclick: () => setMode('photo') });
+  const videoBtn = h('button', { class: 'mode-btn', role: 'radio', text: 'Video', onclick: () => setMode('video') });
+  const durBtn = h('button', {
+    class: 'mode-dur',
+    'aria-label': 'Clip length',
+    onclick: () => {
+      s.settings.set('videoSeconds', nextDuration(s.settings.get().videoSeconds));
+      renderMode();
+    },
+  });
+  const modeBar = h('div', { class: 'mode-bar', hidden: true }, h('div', { class: 'mode-seg', role: 'radiogroup', 'aria-label': 'Capture mode' }, photoBtn, videoBtn), durBtn);
   const bottombar = h('footer', { class: 'bottombar' }, thumb, shutter, side, fileInput);
 
-  const el = h('div', { class: 'screen viewfinder' }, stage, topbar, bottombar, saving, recordingEl);
+  const el = h('div', { class: 'screen viewfinder' }, stage, topbar, modeBar, bottombar, saving, recordingEl);
 
   function renderLensLabel() {
     lensName.textContent = lens.name;
     lensTagline.textContent = lens.tagline;
     stillBadge.hidden = lens.kind !== 'still';
     s.diag.lensId = lens.id;
+    renderMode();
+  }
+
+  /** Video clips are offered for live (realtime) lenses when the browser can record a canvas. */
+  function videoMode(): boolean {
+    return canVideo && lens.kind === 'realtime' && s.settings.get().captureMode === 'video';
+  }
+
+  function renderMode() {
+    modeBar.hidden = !canVideo || lens.kind !== 'realtime' || clip !== null || recording !== null;
+    const vid = videoMode();
+    photoBtn.classList.toggle('on', !vid);
+    videoBtn.classList.toggle('on', vid);
+    photoBtn.setAttribute('aria-checked', String(!vid));
+    videoBtn.setAttribute('aria-checked', String(vid));
+    durBtn.hidden = !vid;
+    durBtn.textContent = `${s.settings.get().videoSeconds} s`;
+    shutter.classList.toggle('video', vid || clip !== null);
+    if (!recording) shutter.setAttribute('aria-label', clip ? 'Stop recording' : vid ? 'Record video' : 'Take photo');
+  }
+
+  function setMode(mode: 'photo' | 'video') {
+    if (clip) return;
+    s.settings.set('captureMode', mode);
+    renderMode();
   }
 
   function setLens(next: Lens) {
@@ -245,12 +300,18 @@ export function createViewfinder(app: App): Screen {
     if (!running) return;
     raf = requestAnimationFrame(frame);
     if (!renderer || !source) return;
+    if (clip?.started) tickClip();
     const fresh = source.update(now);
     if (!fresh && !dirty) return;
     try {
       if (fresh) renderer.setInput(source.element, source.width, source.height);
       renderer.drawPreview({ lens, params, seed, fit: 'cover', showOriginal: comparing, scale: adaptive.scale });
       dirty = false;
+      // Thumbnail: grab a frame ~half a second in, right after drawing (the WebGL buffer is valid now).
+      if (clip?.started && !clip.thumb && clip.rec.elapsed > 0.5) {
+        const cv = renderer.canvas;
+        clip.thumb = makeThumb(cv, cv.width, cv.height).catch(() => null);
+      }
       if (recording && fresh) feedRecording(now);
     } catch (e) {
       logEvent('error', 'lens', `Preview failed for ${lens.id}`, e);
@@ -282,6 +343,13 @@ export function createViewfinder(app: App): Screen {
 
   function pause() {
     cancelRecording();
+    if (clip?.started) void stopClip(); // keep what was recorded
+    else if (clip) {
+      clip.rec.cancel();
+      clip.endBusy();
+      clip = null;
+      resetRecordingUi();
+    }
     running = false;
     cancelAnimationFrame(raf);
     stopSource();
@@ -386,6 +454,89 @@ export function createViewfinder(app: App): Screen {
     shutter.classList.remove('recording');
     shutter.setAttribute('aria-label', 'Take photo');
     recordingEl.hidden = true;
+    renderMode();
+  }
+
+  // ---------- Lens video clips ----------
+  async function startClip() {
+    if (!renderer || !source || clip) return;
+    let rec: ClipRecorder;
+    try {
+      rec = new ClipRecorder(renderer.canvas);
+    } catch (e) {
+      toast(`Can’t record video here: ${errorMessage(e)}`);
+      return;
+    }
+    const c: ClipState = {
+      rec,
+      lens,
+      params: { ...params },
+      seed,
+      seconds: s.settings.get().videoSeconds,
+      createdAt: new Date().toISOString(),
+      geo: s.settings.get().locationTagging ? getPosition() : null,
+      started: false,
+      stopping: false,
+      thumb: null,
+      endBusy: s.busy.begin(),
+    };
+    clip = c;
+    shutter.classList.add('recording');
+    renderMode();
+    recordingEl.hidden = false;
+    recordingEl.textContent = 'Starting…';
+    try {
+      const { sound } = await rec.start(s.settings.get().videoSound);
+      if (clip !== c) {
+        rec.cancel();
+        return;
+      }
+      c.started = true;
+      navigator.vibrate?.(12);
+      if (s.settings.get().videoSound && !sound) toast('Microphone unavailable: recording without sound');
+      logEvent('info', 'video', `Recording ${c.seconds} s clip (${rec.type}${sound ? ', sound' : ''})`);
+      dirty = true;
+      tickClip();
+    } catch (e) {
+      logEvent('error', 'video', 'Could not start recording', e);
+      toast(`Couldn’t start video: ${errorMessage(e)}`);
+      rec.cancel();
+      c.endBusy();
+      if (clip === c) clip = null;
+      resetRecordingUi();
+    }
+  }
+
+  function tickClip() {
+    if (!clip?.started || clip.stopping) return;
+    const t = clip.rec.elapsed;
+    recordingEl.textContent = `● ${clock(t)} / ${clock(clip.seconds)} · tap to stop`;
+    if (t >= clip.seconds) void stopClip();
+  }
+
+  async function stopClip() {
+    const c = clip;
+    if (!c || !c.started || c.stopping) return;
+    c.stopping = true;
+    recordingEl.textContent = 'Saving clip…';
+    try {
+      const result = await c.rec.stop();
+      const thumb = c.thumb ? await c.thumb : null;
+      navigator.vibrate?.([10, 40, 10]);
+      void s.queue
+        .add(async () => {
+          await saveClip(s, { ...result, thumb, lens: c.lens, params: c.params, seed: c.seed, createdAt: c.createdAt, geo: c.geo });
+          await refreshThumb();
+        })
+        .catch((e: unknown) => toast(`Couldn’t save the clip: ${errorMessage(e)}`));
+    } catch (e) {
+      logEvent('error', 'video', 'Recording failed', e);
+      toast(`Video failed: ${errorMessage(e)}`);
+    } finally {
+      c.endBusy();
+      if (clip === c) clip = null;
+      resetRecordingUi();
+    }
   }
 
   async function capture() {
@@ -393,6 +544,14 @@ export function createViewfinder(app: App): Screen {
     void s.album.ensurePermission();
     if (!renderer) {
       toast('This device can’t render lenses (WebGL2 unavailable).');
+      return;
+    }
+    if (clip) {
+      void stopClip();
+      return;
+    }
+    if (!recording && videoMode()) {
+      void startClip();
       return;
     }
     if (recording) {

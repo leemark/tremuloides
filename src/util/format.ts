@@ -1,7 +1,7 @@
 const pad = (n: number, w = 2) => String(n).padStart(w, '0');
 
 /** tremuloides_YYYYMMDD_HHMMSS_<lensId>.<ext> in local time. */
-export function exportFilename(date: Date, lensId: string, ext: 'jpg' | 'png' = 'jpg'): string {
+export function exportFilename(date: Date, lensId: string, ext = 'jpg'): string {
   const d = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
   const t = `${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
   const safeLens = lensId.replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'lens';

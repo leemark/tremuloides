@@ -41,7 +41,16 @@ export type AlbumState =
   | { status: 'off' }
   | { status: 'ready' | 'needs-permission' | 'denied'; folder: string };
 
-const EXT: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/heic': 'heic', 'image/heif': 'heif', 'image/avif': 'avif' };
+const EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/avif': 'avif',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+};
 
 export function extFor(type: string | undefined): string {
   return EXT[(type ?? '').toLowerCase()] ?? 'jpg';
@@ -49,7 +58,7 @@ export function extFor(type: string | undefined): string {
 
 /** tremuloides_YYYYMMDD_HHMMSS_<lens>_<id6>.jpg and …_original.<ext> */
 export function albumFilenames(c: Capture, originalType?: string): { output: string; original: string } {
-  const base = exportFilename(new Date(c.createdAt), c.lensId, c.outputType === 'image/png' ? 'png' : 'jpg').replace(/\.(jpg|png)$/, '');
+  const base = exportFilename(new Date(c.createdAt), c.lensId, extFor(c.outputType)).replace(/\.[a-z0-9]+$/, '');
   const tag = c.id.slice(-6).toLowerCase();
   return {
     output: `${base}_${tag}.${extFor(c.outputType)}`,

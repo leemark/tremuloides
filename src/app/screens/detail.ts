@@ -7,6 +7,7 @@ import { exportFilename, metersToFeet } from '../../util/format';
 import { downloadBlob, shareFiles } from '../share';
 import { extFor } from '../../storage/album';
 import { withExif } from '../export';
+import { clock, isVideoType } from '../video';
 import { processAndSave } from '../capture';
 import { randomSeed } from '../../util/prng';
 import type { Capture } from '../../storage/types';
@@ -25,16 +26,17 @@ export function createDetail(app: App, id: string): Screen {
   const view = h('div', { class: 'detail-view' }, img, compareBadge);
   const info = h('div', { class: 'detail-info' });
   const actions = h('div', { class: 'detail-actions' });
+  const title = h('h1', { text: 'Photo' });
   const header = h(
     'header',
     { class: 'screen-header' },
     h('button', { class: 'icon-btn', 'aria-label': 'Back', html: ICONS.back, onclick: () => app.back() }),
-    h('h1', { text: 'Photo' }),
+    title,
   );
   const el = h('div', { class: 'screen detail' }, header, view, h('div', { class: 'detail-panel' }, actions, info));
 
   function filename(c: Capture) {
-    return exportFilename(new Date(c.createdAt), c.lensId, c.outputType === 'image/png' ? 'png' : 'jpg');
+    return exportFilename(new Date(c.createdAt), c.lensId, extFor(c.outputType));
   }
 
   async function outputFile(c: Capture): Promise<File | null> {
@@ -59,11 +61,23 @@ export function createDetail(app: App, id: string): Screen {
       return;
     }
     const c = capture;
+    const isClip = isVideoType(c.outputType);
+    if (isClip) title.textContent = 'Video';
     const out = await s.store.blob(c.outputKey);
     if (out) {
       outputUrl = URL.createObjectURL(out);
       urls.push(outputUrl);
-      img.src = outputUrl;
+      if (isClip) {
+        const video = h('video', { class: 'detail-img detail-video', controls: true, loop: true, playsinline: true, autoplay: true, muted: true });
+        video.muted = true; // autoplay needs muted; tap the speaker in the controls for sound
+        video.src = outputUrl;
+        img.replaceWith(video);
+        cleanups.push(() => {
+          video.pause();
+          video.removeAttribute('src');
+          video.load();
+        });
+      } else img.src = outputUrl;
     }
     const orig = await s.store.blob(c.originalKey);
     if (orig) {
@@ -80,15 +94,46 @@ export function createDetail(app: App, id: string): Screen {
     );
     if (known && lens.params.length) rows.append(infoRow('Settings', paramSummary(lens.params, c.params)));
     rows.append(infoRow('Size', `${c.width} × ${c.height}`));
+    if (isClip && c.durationMs) rows.append(infoRow('Length', `${clock(Math.round(c.durationMs / 1000))} · ${c.outputType.replace('video/', '').toUpperCase()}`));
     if (c.geo) {
       const alt = c.geo.altitude !== null ? ` · ${Math.round(metersToFeet(c.geo.altitude)).toLocaleString()} ft (${Math.round(c.geo.altitude)} m)` : '';
       rows.append(infoRow('Location', `${c.geo.lat.toFixed(5)}, ${c.geo.lon.toFixed(5)}${alt}`));
     }
-    const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene', burst: 'Burst (Quake)', 'slit-scan': 'Slit-scan (Quake)' }[c.captureMethod ?? 'file'];
+    const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene', burst: 'Burst (Quake)', 'slit-scan': 'Slit-scan (Quake)', 'video-clip': 'Video clip' }[c.captureMethod ?? 'file'];
     rows.append(infoRow('Source', `${method}${c.source === 'derived' ? ' · re-edit' : ''}`));
     if (c.albumSavedAt) rows.append(infoRow('Album', `Saved to phone ${formatDateTime(c.albumSavedAt)}`));
     rows.append(infoRow('App', `v${c.appVersion}`));
     info.replaceChildren(rows);
+
+    if (isClip) {
+      actions.replaceChildren(
+        action(ICONS.share, 'Share', async () => {
+          const f = await outputFile(c);
+          if (!f) return;
+          const r = await shareFiles([f]);
+          if (r === 'downloaded') toast('Saved to Downloads');
+        }),
+        action(ICONS.download, 'Save', async () => {
+          const f = await outputFile(c);
+          if (f) {
+            downloadBlob(f, f.name);
+            toast('Saved to Downloads');
+          }
+        }),
+        action(
+          ICONS.trash,
+          'Delete',
+          async () => {
+            if (!(await confirmDialog('Delete this clip? This can’t be undone.', 'Delete', true))) return;
+            await s.store.delete(c.id);
+            toast('Deleted');
+            app.back();
+          },
+          'danger',
+        ),
+      );
+      return;
+    }
 
     const buttons: (HTMLButtonElement | null)[] = [
       action(ICONS.share, 'Share', async () => {
@@ -102,7 +147,7 @@ export function createDetail(app: App, id: string): Screen {
             const raw = await s.store.blob(c.originalKey);
             if (!raw) return;
             const blob = await withExif(raw, c, 'original');
-            const name = filename(c).replace(/\.(jpg|png)$/, `_original.${extFor(blob.type)}`);
+            const name = filename(c).replace(/\.[a-z0-9]+$/, `_original.${extFor(blob.type)}`);
             const r = await shareFiles([new File([blob], name, { type: blob.type || 'image/jpeg' })]);
             if (r === 'downloaded') toast('Original saved to Downloads');
           })
@@ -175,7 +220,7 @@ export function createDetail(app: App, id: string): Screen {
                 },
                 view,
                 img,
-                filenameBase: filename(c).replace(/\.(jpg|png)$/, ''),
+                filenameBase: filename(c).replace(/\.[a-z0-9]+$/, ''),
                 share: async (file) => {
                   const r = await shareFiles([file]);
                   if (r === 'downloaded') toast(`${file.name} saved to Downloads`);

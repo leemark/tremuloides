@@ -86,7 +86,10 @@ export class FieldLogService {
         this.emit();
         for (const c of todo) {
           try {
-            const blob = (await this.store.blob(c.originalKey)) ?? (await this.store.blob(c.outputKey));
+            // Clips are analyzed from their thumbnail (a frame of the video).
+            const blob = c.outputType.startsWith('video/')
+              ? await this.store.blob(c.thumbKey)
+              : ((await this.store.blob(c.originalKey)) ?? (await this.store.blob(c.outputKey)));
             if (blob) await this.store.setFieldlog(c.id, await this.analyze(blob));
           } catch (e) {
             logEvent('warn', 'fieldlog', `Could not analyze ${c.id}`, e);

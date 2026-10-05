@@ -16,7 +16,7 @@ export interface FieldLogData {
 }
 
 export type CaptureSource = 'camera' | 'import' | 'derived';
-export type CaptureMethod = 'imagecapture' | 'video-frame' | 'file' | 'test-pattern' | 'burst' | 'slit-scan';
+export type CaptureMethod = 'imagecapture' | 'video-frame' | 'file' | 'test-pattern' | 'burst' | 'slit-scan' | 'video-clip';
 
 export interface Capture {
   /** Sortable by time (ULID-style). */
@@ -37,6 +37,8 @@ export interface Capture {
   captureMethod?: CaptureMethod;
   geo?: GeoTag;
   fieldlog?: FieldLogData;
+  /** Video clips only: length of the clip. The output is a video (outputType video/*). */
+  durationMs?: number;
   /** When this capture's files were written to the phone album folder. */
   albumSavedAt?: string;
   appVersion: string;

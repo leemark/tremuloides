@@ -1,6 +1,7 @@
 import type { Services } from '../app/services';
 import { imageCaptureSupported } from '../camera/camera';
 import { APP_VERSION, BUILD_DATE, BUILD_SHA } from '../version';
+import { pickVideoType, videoSupported } from '../app/video';
 import { SCHEMA_VERSION } from '../storage/db';
 
 export interface StorageInfo {
@@ -43,6 +44,13 @@ export async function buildReport(s: Services): Promise<Record<string, unknown>>
       fps: Number(s.diag.fps.toFixed(1)),
     },
     temporal: s.renderer?.temporalInfo() ?? null,
+    video: {
+      supported: videoSupported(),
+      type: typeof MediaRecorder !== 'undefined' ? pickVideoType((t) => MediaRecorder.isTypeSupported(t)) : null,
+      mode: s.settings.get().captureMode,
+      seconds: s.settings.get().videoSeconds,
+      sound: s.settings.get().videoSound,
+    },
     album: { ...album, savedThisSession: s.album.savedThisSession, lastError: s.album.lastError, since: s.settings.flag('albumSince') || null },
     storage: { ...storage, captures },
     serviceWorker: s.pwa.serviceWorkerState,
