@@ -5,6 +5,7 @@ import COPY_FRAG from './shaders/copy.frag.glsl?raw';
 import { FrameHistoryBuffer } from './history';
 import { previewHistoryPlan } from '../lenses/quake/plan';
 import type { CaptureResult, Lens, LensInstance, Params } from '../lenses/types';
+import { Overlay, overlayActive, type OverlayConfig } from './overlay';
 import { logEvent } from '../diagnostics/log';
 
 export interface PreviewOptions {
@@ -16,6 +17,8 @@ export interface PreviewOptions {
   showOriginal?: boolean;
   /** Adaptive preview scale (0–1). */
   scale?: number;
+  /** Ink lines or contours drawn over the lens. */
+  overlay?: OverlayConfig | null;
 }
 
 export interface GLInfo {
@@ -47,6 +50,8 @@ export class Renderer {
   private inputW = 0;
   private inputH = 0;
   private lensTarget: RenderTarget | null = null;
+  private overlayTarget: RenderTarget | null = null;
+  private overlay: Overlay | null = null;
   private lost = false;
   /** Last preview lens size (for diagnostics). */
   lastPreviewSize: [number, number] = [0, 0];
@@ -72,6 +77,8 @@ export class Renderer {
       this.instances.clear();
       this.input = null;
       this.lensTarget = null;
+      this.overlayTarget = null;
+      this.overlay = null;
       this.history = null;
       logEvent('warn', 'gl', 'WebGL context lost');
     });
@@ -242,6 +249,12 @@ export class Renderer {
       );
       if (result instanceof Promise) result.catch((e: unknown) => logEvent('error', 'lens', String(e)));
       if (this.lensTarget.tex) shown = this.lensTarget.tex;
+      if (overlayActive(opts.overlay) && this.lensTarget.tex) {
+        this.overlay ??= new Overlay(this.kit);
+        this.overlayTarget = this.kit.ensureTarget(this.overlayTarget, lw, lh);
+        this.overlay.apply(this.lensTarget.tex, this.input, this.overlayTarget, opts.overlay, 'preview');
+        if (this.overlayTarget.tex) shown = this.overlayTarget.tex;
+      }
     }
     const [sx, sy] = fitScale(this.inputW / this.inputH, dw / dh, opts.fit);
     this.kit.draw(this.display, { fbo: null, tex: null, width: dw, height: dh }, {
@@ -262,11 +275,13 @@ export class Renderer {
     params: Params,
     seed: number,
     onProgress?: (fraction: number) => void,
+    overlay?: OverlayConfig | null,
   ): Promise<ImageData> {
     if (this.isLost) throw new Error('Graphics context was lost; try again in a moment.');
     const kit = this.kit;
     const tex = kit.createTexture(0, 0);
     let target: RenderTarget | null = null;
+    let withOverlay: RenderTarget | null = null;
     try {
       kit.upload(tex, source);
       target = kit.createTarget(width, height);
@@ -274,11 +289,19 @@ export class Renderer {
         { input: tex, inputWidth: width, inputHeight: height, width, height, params, seed, quality: 'final', ...(onProgress ? { onProgress } : {}) },
         target,
       );
-      const pixels = kit.readPixels(target);
+      let result = target;
+      if (overlayActive(overlay) && target.tex) {
+        this.overlay ??= new Overlay(kit);
+        withOverlay = kit.createTarget(width, height);
+        this.overlay.apply(target.tex, tex, withOverlay, overlay, 'final');
+        result = withOverlay;
+      }
+      const pixels = kit.readPixels(result);
       return new ImageData(pixels, width, height);
     } finally {
       this.gl.deleteTexture(tex);
       kit.deleteTarget(target);
+      kit.deleteTarget(withOverlay);
     }
   }
 

@@ -37,6 +37,8 @@ export interface Capture {
   captureMethod?: CaptureMethod;
   geo?: GeoTag;
   fieldlog?: FieldLogData;
+  /** Ink-line or contour overlay drawn over the lens (v0.16.0+). */
+  overlay?: { kind: 'none' | 'ink' | 'contours'; strength: number };
   /** Video clips only: length of the clip. The output is a video (outputType video/*). */
   durationMs?: number;
   /** When this capture's files were written to the phone album folder. */

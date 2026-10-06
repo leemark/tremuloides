@@ -6,6 +6,7 @@ import type { CaptureResult, Lens, Params } from '../lenses/types';
 import type { Capture, CaptureMethod, CaptureSource, GeoTag } from '../storage/types';
 import { newId } from '../util/ids';
 import { APP_VERSION } from '../version';
+import { overlayActive, sanitizeOverlay, type OverlayConfig } from '../gl/overlay';
 import { logEvent } from '../diagnostics/log';
 
 export interface LensState {
@@ -37,6 +38,8 @@ export interface ProcessOptions {
   createdAt?: string;
   /** Resolved later; attached to the capture when it arrives. */
   geo?: Promise<GeoTag | null> | GeoTag | null;
+  /** Ink lines / contours over the lens. */
+  overlay?: OverlayConfig | null;
 }
 
 /** Full-resolution render + encode + save. Never blocks on location. */
@@ -48,7 +51,7 @@ export async function processAndSave(s: Services, o: ProcessOptions): Promise<Ca
     const sized = await decodeForRender(o.bitmap, maxRenderEdge(settings, renderer.maxTextureSize));
     let rendered;
     try {
-      rendered = await renderToImage(renderer, sized, o.lens, o.params, o.seed, settings.exportFormat, (f) => s.busy.setProgress(f));
+      rendered = await renderToImage(renderer, sized, o.lens, o.params, o.seed, settings.exportFormat, (f) => s.busy.setProgress(f), o.overlay);
     } finally {
       s.busy.setProgress(null);
       sized.close();
@@ -70,6 +73,7 @@ export async function processAndSave(s: Services, o: ProcessOptions): Promise<Ca
         height: rendered.height,
         ...(o.method ? { captureMethod: o.method } : {}),
         ...(o.geo && !(o.geo instanceof Promise) ? { geo: o.geo } : {}),
+        ...(overlayActive(o.overlay) ? { overlay: { ...o.overlay } } : {}),
         appVersion: APP_VERSION,
       },
       {
@@ -130,6 +134,7 @@ export async function saveClip(
     createdAt: string;
     parentId?: string;
     geo?: Promise<GeoTag | null> | GeoTag | null;
+    overlay?: OverlayConfig | null;
   },
 ): Promise<Capture> {
   return s.busy.run(async () => {
@@ -151,6 +156,7 @@ export async function saveClip(
         height: o.height,
         captureMethod: 'video-clip',
         durationMs: Math.round(o.durationMs),
+        ...(overlayActive(o.overlay) ? { overlay: { ...o.overlay } } : {}),
         appVersion: APP_VERSION,
       },
       { output: o.blob, thumb },
@@ -200,4 +206,10 @@ export async function saveCaptureResult(
     });
     return capture;
   });
+}
+
+/** The overlay chosen in the viewfinder / editor (saved in settings). */
+export function currentOverlay(s: Services): OverlayConfig {
+  const st = s.settings.get();
+  return sanitizeOverlay({ kind: st.overlayKind, strength: st.overlayStrength });
 }

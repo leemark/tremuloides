@@ -19,6 +19,9 @@ export interface Settings {
   videoSeconds: number;
   /** Record microphone sound with clips. */
   videoSound: boolean;
+  /** Overlay drawn over any lens. */
+  overlayKind: 'none' | 'ink' | 'contours';
+  overlayStrength: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -34,6 +37,8 @@ export const DEFAULT_SETTINGS: Settings = {
   captureMode: 'photo',
   videoSeconds: 10,
   videoSound: false,
+  overlayKind: 'none',
+  overlayStrength: 0.8,
 };
 
 /** Minimal synchronous key/value store (localStorage), safe when storage is unavailable. */
@@ -85,6 +90,8 @@ export class SettingsStore {
       if (![2048, 4096, 0].includes(merged.maxRenderEdge)) merged.maxRenderEdge = DEFAULT_SETTINGS.maxRenderEdge;
       if (merged.captureMode !== 'photo' && merged.captureMode !== 'video') merged.captureMode = DEFAULT_SETTINGS.captureMode;
       if (![5, 10, 15].includes(merged.videoSeconds)) merged.videoSeconds = DEFAULT_SETTINGS.videoSeconds;
+      if (!['none', 'ink', 'contours'].includes(merged.overlayKind)) merged.overlayKind = 'none';
+      if (!(merged.overlayStrength >= 0 && merged.overlayStrength <= 1)) merged.overlayStrength = DEFAULT_SETTINGS.overlayStrength;
       return merged;
     } catch {
       return { ...DEFAULT_SETTINGS };

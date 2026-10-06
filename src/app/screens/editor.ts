@@ -2,8 +2,9 @@ import type { App, EditorInput, Screen } from '../app';
 import { h, ICONS, iconButton, toast } from '../ui';
 import { DEFAULT_LENS_ID, STILL_LENSES } from '../../lenses/registry';
 import { defaultParams } from '../../lenses/params';
-import { lensStateFor, processAndSave } from '../capture';
-import { paramControls, presetBar } from '../params-ui';
+import { currentOverlay, lensStateFor, processAndSave } from '../capture';
+import { sanitizeOverlay } from '../../gl/overlay';
+import { overlayControls, paramControls, presetBar } from '../params-ui';
 import { finalRenderSize } from '../../gl/fit';
 import { randomSeed } from '../../util/prng';
 import { logEvent, errorMessage } from '../../diagnostics/log';
@@ -17,6 +18,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
   const stillOk = STILL_LENSES.some((l) => l.id === requested);
   let { lens, params } = lensStateFor(s, stillOk ? requested : DEFAULT_LENS_ID, stillOk ? input.params : undefined);
   let seed = input.seed ?? randomSeed();
+  let overlay = input.overlay ? sanitizeOverlay(input.overlay) : currentOverlay(s);
   let preview: ImageBitmap | null = null;
   let comparing = false;
   let raf = 0;
@@ -91,6 +93,13 @@ export function createEditor(app: App, input: EditorInput): Screen {
           }),
       );
     }
+    paramsHost.append(
+      h('h3', { class: 'sheet-subhead', text: 'Overlay (any lens)' }),
+      overlayControls(overlay, (next) => {
+        overlay = next;
+        redraw();
+      }),
+    );
     seedBtn.hidden = !lens.seeded;
   }
 
@@ -107,7 +116,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
     raf = requestAnimationFrame(() => {
       if (!renderer || !preview || !alive) return;
       try {
-        renderer.drawPreview({ lens, params, seed, fit: 'contain', showOriginal: comparing });
+        renderer.drawPreview({ lens, params, seed, fit: 'contain', showOriginal: comparing, overlay });
       } catch (e) {
         logEvent('error', 'lens', `Editor preview failed for ${lens.id}`, e);
         status.textContent = `${lens.name} failed to render.`;
@@ -151,6 +160,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
     try {
       const bitmap = await createImageBitmap(input.blob, { imageOrientation: 'from-image' });
       const capture = await processAndSave(s, {
+        overlay,
         bitmap,
         originalBlob: input.blob,
         lens,

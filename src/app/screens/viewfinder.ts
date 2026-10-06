@@ -5,10 +5,11 @@ import { AdaptiveScale } from '../../gl/adaptive';
 import { LENSES, adjacentLens, getLens } from '../../lenses/registry';
 import { defaultParams } from '../../lenses/params';
 import type { Lens, Params } from '../../lenses/types';
-import { currentLensState, processAndSave, saveCaptureResult, saveClip } from '../capture';
+import type { OverlayConfig } from '../../gl/overlay';
+import { currentLensState, currentOverlay, processAndSave, saveCaptureResult, saveClip } from '../capture';
 import { makeThumb } from '../pipeline';
 import { ClipRecorder, clock, nextDuration, videoSupported } from '../video';
-import { paramControls, presetBar } from '../params-ui';
+import { overlayControls, paramControls, presetBar } from '../params-ui';
 import { getPosition } from '../geo';
 import { randomSeed } from '../../util/prng';
 import { logEvent, errorMessage } from '../../diagnostics/log';
@@ -24,6 +25,7 @@ interface ClipState {
   started: boolean;
   stopping: boolean;
   thumb: Promise<Blob | null> | null;
+  overlay: OverlayConfig;
   endBusy: () => void;
 }
 
@@ -36,6 +38,7 @@ export function createViewfinder(app: App): Screen {
   const renderer = s.renderer;
   let { lens, params } = currentLensState(s);
   let seed = randomSeed();
+  let overlay = currentOverlay(s);
 
   let source: FrameSource | null = null;
   let raf = 0;
@@ -178,6 +181,13 @@ export function createViewfinder(app: App): Screen {
           setParams(next);
           bar.refresh();
         }),
+        h('h3', { class: 'sheet-subhead', text: 'Overlay (any lens)' }),
+        overlayControls(overlay, (next) => {
+          overlay = next;
+          s.settings.set('overlayKind', next.kind);
+          s.settings.set('overlayStrength', next.strength);
+          dirty = true;
+        }),
         h(
           'div',
           { class: 'sheet-actions' },
@@ -313,7 +323,7 @@ export function createViewfinder(app: App): Screen {
     if (!fresh && !dirty) return;
     try {
       if (fresh) renderer.setInput(source.element, source.width, source.height);
-      renderer.drawPreview({ lens, params, seed, fit: 'cover', showOriginal: comparing, scale: adaptive.scale });
+      renderer.drawPreview({ lens, params, seed, fit: 'cover', showOriginal: comparing, scale: adaptive.scale, overlay });
       dirty = false;
       // Thumbnail: grab a frame ~half a second in, right after drawing (the WebGL buffer is valid now).
       if (clip?.started && !clip.thumb && clip.rec.elapsed > 0.5) {
@@ -486,6 +496,7 @@ export function createViewfinder(app: App): Screen {
       started: false,
       stopping: false,
       thumb: null,
+      overlay: { ...overlay },
       endBusy: s.busy.begin(),
     };
     clip = c;
@@ -533,7 +544,7 @@ export function createViewfinder(app: App): Screen {
       navigator.vibrate?.([10, 40, 10]);
       void s.queue
         .add(async () => {
-          await saveClip(s, { ...result, thumb, lens: c.lens, params: c.params, seed: c.seed, createdAt: c.createdAt, geo: c.geo });
+          await saveClip(s, { ...result, thumb, lens: c.lens, params: c.params, seed: c.seed, createdAt: c.createdAt, geo: c.geo, overlay: c.overlay });
           await refreshThumb();
         })
         .catch((e: unknown) => toast(`Couldn’t save the clip: ${errorMessage(e)}`));
@@ -582,12 +593,14 @@ export function createViewfinder(app: App): Screen {
     const shotLens = lens;
     const shotParams = { ...params };
     const shotSeed = seed;
+    const shotOverlay = { ...overlay };
     try {
       const still = await source.takeStill(s.settings.get().captureSource);
       s.diag.camera = source.info();
       void s.queue
         .add(async () => {
           await processAndSave(s, {
+            overlay: shotOverlay,
             bitmap: still.bitmap,
             originalBlob: still.blob,
             lens: shotLens,
