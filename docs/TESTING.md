@@ -2,6 +2,11 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.20.0: Papercut
+1. Pick **Papercut** and point at layered ridges or a treeline against sky. You should see flat paper sheets with soft shadows below and right of the nearer ones.
+2. Try **Paper**: White (a white shadow box) and Kraft.
+3. Change **Layers** and **Cut smoothness**. Try **In front: Lighter layers** on a night or backlit scene.
+
 ## v0.19.0: Aerochrome
 1. Pick **Aerochrome** and point at trees with sky behind. Leaves turn crimson or magenta and the sky goes deep blue.
 2. Switch **Film** to Hot pink and to Mono IR (white trees, dark sky).
