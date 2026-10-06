@@ -2,6 +2,13 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.16.0: Overlays
+1. Tap the lens name → scroll to **Overlay (any lens)** → **Contours**. Topo-style lines appear over the live lens; adjust **Overlay strength**.
+2. Try **Ink lines** over Flow Painter and over Stained Glass (preview and saved photo).
+3. Take a photo. Its info shows "Overlay: Contours 80%". Re-edit keeps the overlay.
+4. Record a 5 s video with an overlay on; the clip includes it.
+5. Set Overlay back to **None**. Everything looks as before.
+
 ## v0.15.0: Presets
 1. Tap the lens name in the viewfinder. A **Presets** row sits at the top. Tap one (e.g. Ink & Wash → San Juan poster). The sliders jump and the chip lights up.
 2. Move a slider. The chip un-highlights.

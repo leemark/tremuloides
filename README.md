@@ -24,7 +24,7 @@ More are planned in [PRD.md](PRD.md) §14: Flow Painter and Topo.
 - **Shutter** takes a full-resolution photo through the current lens.
 - **Video** (live lenses such as Ink & Wash, Stained Glass, Posterize): switch to *Video* above the shutter, tap *5 s / 10 s / 15 s* to pick a length, and tap the red shutter. The clip records exactly what the viewfinder shows (MP4 where supported, otherwise WebM). You can swipe to another lens mid-clip. Sound is optional (Settings).
 - **Swipe** sideways on the viewfinder to change lens. **Press and hold** to see the unprocessed original.
-- **Tap the lens name** to adjust its settings. Settings are remembered per lens. **Presets** at the top give one-tap looks; **＋ Save** keeps your own.
+- **Tap the lens name** to adjust its settings. Settings are remembered per lens. **Presets** at the top give one-tap looks; **＋ Save** keeps your own. **Overlay** adds ink lines or contours over any lens.
 - **Import** applies a lens to a photo that's already on your phone.
 - In the **Gallery** you can share, save, re-edit (originals are kept), or delete. **Compare** makes a before/after reveal video or a side-by-side image. **Select → Apply lens** re-renders many photos with one lens.
 - **Phone album** (Settings): choose a folder such as Pictures › Tremuloides once, and every photo (and, optionally, its original) is also saved there as a normal file. Uses the File System Access API (Chrome 132+ on Android).

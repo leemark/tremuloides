@@ -16,6 +16,7 @@ export interface EditorInput {
   lensId?: string;
   params?: Params;
   seed?: number;
+  overlay?: { kind: string; strength: number };
 }
 
 export type Route =

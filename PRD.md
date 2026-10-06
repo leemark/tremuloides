@@ -490,7 +490,7 @@ Turns the skyline of the photo into music.
 - **B6. Done in v0.14.0:** batch re-render of a selection with a lens (`src/app/batch.ts`).
 - **B7.** WebGPU code path.
 - **Done in v0.10.0: lens video clips.** 5/10/15 s MediaRecorder clips of the live viewfinder for realtime lenses (`src/app/video.ts`), stored as captures with `outputType` video/*.
-- **B8.** Dual-lens blend, e.g. Topo lines over Ink & Wash.
+- **B8. Done in v0.16.0 (as overlays):** ink-line or contour overlay over any lens (`src/gl/overlay`).
 
 ## 16. Assumptions and open questions
 

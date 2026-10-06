@@ -2,7 +2,7 @@ import type { Services } from './services';
 import type { Capture } from '../storage/types';
 import type { Lens, Params } from '../lenses/types';
 import { isVideoType } from './video';
-import { processAndSave } from './capture';
+import { currentOverlay, processAndSave } from './capture';
 import { randomSeed } from '../util/prng';
 import { logEvent, errorMessage } from '../diagnostics/log';
 
@@ -56,6 +56,7 @@ class BatchRunner {
     this.cancelled = false;
     this.emit({ running: true, done: 0, total: items.length, failed: 0, lensName: lens.name });
     const end = s.busy.begin();
+    const overlay = currentOverlay(s);
     try {
       for (const c of items) {
         if (this.cancelled) break;
@@ -66,6 +67,7 @@ class BatchRunner {
             if (!blob) throw new Error('Photo data missing');
             const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
             await processAndSave(s, {
+              overlay,
               bitmap,
               originalBlob: blob,
               lens,

@@ -9,6 +9,7 @@ import { extFor } from '../../storage/album';
 import { withExif } from '../export';
 import { clock, isVideoType, videoSupported } from '../video';
 import { makeRevealVideo, makeSideBySide } from '../compare';
+import { describeOverlay, sanitizeOverlay } from '../../gl/overlay';
 import { processAndSave, saveClip } from '../capture';
 import { randomSeed } from '../../util/prng';
 import type { Capture } from '../../storage/types';
@@ -94,6 +95,8 @@ export function createDetail(app: App, id: string): Screen {
       infoRow('Lens', known ? `${lens.name} (v${c.lensVersion})` : `${c.lensId} (not in this version)`),
     );
     if (known && lens.params.length) rows.append(infoRow('Settings', paramSummary(lens.params, c.params)));
+    const ov = describeOverlay(c.overlay ? sanitizeOverlay(c.overlay) : null);
+    if (ov) rows.append(infoRow('Overlay', ov));
     rows.append(infoRow('Size', `${c.width} × ${c.height}`));
     if (isClip && c.durationMs) rows.append(infoRow('Length', `${clock(Math.round(c.durationMs / 1000))} · ${c.outputType.replace('video/', '').toUpperCase()}`));
     if (c.geo) {
@@ -167,7 +170,7 @@ export function createDetail(app: App, id: string): Screen {
         if (!c.originalKey) toast('No original kept. Editing the rendered image.');
         app.navigate({
           name: 'editor',
-          input: { blob, source: 'derived', parent: c, lensId: c.lensId, params: c.params, seed: c.seed },
+          input: { blob, source: 'derived', parent: c, lensId: c.lensId, params: c.params, seed: c.seed, ...(c.overlay ? { overlay: c.overlay } : {}) },
         });
       }),
       known && lens.seeded && c.originalKey
@@ -178,6 +181,7 @@ export function createDetail(app: App, id: string): Screen {
             try {
               const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' });
               const next = await processAndSave(s, {
+                ...(c.overlay ? { overlay: sanitizeOverlay(c.overlay) } : {}),
                 bitmap,
                 originalBlob: blob,
                 lens,

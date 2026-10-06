@@ -1,6 +1,7 @@
 import { confirmDialog, h, promptText, toast } from './ui';
 import type { Lens, ParamSpec, Params, ParamValue } from '../lenses/types';
 import { MAX_NAME, presetMatches, presetParams, type PresetStore } from '../storage/presets';
+import { OVERLAY_KINDS, sanitizeOverlay, type OverlayConfig } from '../gl/overlay';
 
 function formatNumber(v: number, step: number): string {
   const decimals = step >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(step)));
@@ -149,4 +150,27 @@ export function presetBar(store: PresetStore, lens: Lens, getParams: () => Param
   };
   render();
   return Object.assign(row, { refresh: render });
+}
+
+const OVERLAY_SPECS: ParamSpec[] = [
+  { id: 'kind', label: 'Overlay', type: 'select', options: OVERLAY_KINDS.map((o) => ({ value: o.value, label: o.label })), default: 'none', help: 'Lines drawn over any lens' },
+  { id: 'strength', label: 'Overlay strength', type: 'range', min: 0.1, max: 1, step: 0.05, default: 0.8 },
+];
+
+/** Overlay controls (ink lines / contours over any lens). */
+export function overlayControls(cfg: OverlayConfig, onChange: (next: OverlayConfig) => void): HTMLElement {
+  const box = h('div', { class: 'overlay-controls' });
+  const build = (c: OverlayConfig) => {
+    box.replaceChildren(
+      paramControls(c.kind === 'none' ? OVERLAY_SPECS.slice(0, 1) : OVERLAY_SPECS, { kind: c.kind, strength: c.strength }, (v) => {
+        const next = sanitizeOverlay({ kind: v.kind, strength: v.strength });
+        const rebuild = next.kind !== c.kind && (next.kind === 'none' || c.kind === 'none');
+        onChange(next);
+        if (rebuild) build(next);
+        else c = next;
+      }),
+    );
+  };
+  build(cfg);
+  return box;
 }

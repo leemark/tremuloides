@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.16.0 (2026-10-05)
+- Overlays: draw ink lines or topo contour lines over any lens, e.g. contours over Ink & Wash, or ink outlines over Flow Painter or Stained Glass
+- Find it under the lens settings: Overlay (any lens), with a strength slider
+- Works for photos, video clips, re-edits and Apply lens
+
 ## v0.15.0 (2026-10-05)
 - Presets: a row of one-tap looks at the top of every lens's settings, in the viewfinder and the editor
 - Starters for each lens, like Ink & Wash "San Juan poster", Stained Glass "Cathedral" and Flow Painter "Broad strokes"
