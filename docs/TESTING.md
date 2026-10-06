@@ -2,6 +2,12 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.11.0: Ink & Wash color fix
+1. Re-edit the backlit brown-leaf photo and the trail-walker photo with Ink & Wash, **Palette: San Juan**. Leaves and gravel stay brown, and the canopy is gold/amber, not red.
+2. Re-edit the looking-up trunk photo. The yellow canopy against blue sky shouldn't turn teal-green.
+3. Drag **Palette strength** from 1 down to 0. It goes from the pure San Juan palette to the photo's own colors.
+4. Gouache and Mono ink look unchanged.
+
 ## v0.10.0: Video clips
 1. Pick **Ink & Wash**. Above the shutter, tap **Video**. The shutter turns red, and a **10 s** chip appears; tap it to cycle 5 / 10 / 15 s.
 2. Tap the shutter. The indicator counts "● 0:03 / 0:10". It stops by itself, or tap again to stop early.
