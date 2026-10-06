@@ -23,7 +23,7 @@ export const risographLens: Lens = {
   kind: 'realtime',
   seeded: true,
   params: [
-    { id: 'inks', label: 'Inks', type: 'select', options: Object.entries(COMBOS).map(([value, c]) => ({ value, label: c.label })), default: 'pinkteal' },
+    { id: 'inks', label: 'Inks', type: 'select', options: Object.entries(COMBOS).map(([value, c]) => ({ value, label: c.label })), default: 'pinkblueyellow' },
     {
       id: 'screen',
       label: 'Screen',
