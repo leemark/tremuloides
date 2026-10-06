@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.21.0 (2026-10-06)
+- New Risograph lens: your photo printed in two or three spot inks (fluorescent pink, blue, yellow and more) with halftone dots, grain and slightly off-register layers
+- Five ink sets, dots or grain, dot size and misregistration; New seed re-registers the inks
+
 ## v0.20.0 (2026-10-05)
 - New Papercut lens: the scene as layered paper cut-outs with soft shadows, like a shadow box. Great on layered mountain ridges.
 - Choose the number of layers, cut smoothness, shadow depth, and paper (photo colors, white card or kraft)
