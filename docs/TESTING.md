@@ -2,6 +2,12 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.19.0: Aerochrome
+1. Pick **Aerochrome** and point at trees with sky behind. Leaves turn crimson or magenta and the sky goes deep blue.
+2. Switch **Film** to Hot pink and to Mono IR (white trees, dark sky).
+3. Try **Foliage glow** and **Halation**.
+4. Record a 5 s video in Aerochrome.
+
 ## v0.18.0: Long Exposure
 1. Pick **Long Exposure**. The viewfinder already shows moving things blurring (wave your hand).
 2. Point at moving water or wind in the trees, brace the phone and tap the shutter. "Recording… N%" runs for 3 s.
