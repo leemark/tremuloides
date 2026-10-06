@@ -130,7 +130,7 @@ export const ridgelineLens: Lens = {
   id: 'ridgeline',
   name: 'Ridgeline Score',
   tagline: 'Turns the skyline into a melody',
-  version: 1,
+  version: 2,
   kind: 'realtime', // the skyline overlay previews live; audio comes from the saved photo
   seeded: true,
   params: [

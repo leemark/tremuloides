@@ -53,6 +53,25 @@ describe('skyline', () => {
     for (const tx of [20, 61, 100]) expect(Math.abs((r.y[tx] ?? 0) - f((tx + 0.5) / w))).toBeLessThan(0.04);
   });
 
+  it('ignores sky reflected in a lake below the ridge', () => {
+    // Ridge, then dark shore, then a calm lake mirroring the blue sky over the bottom third.
+    const px = scene(w, h, f);
+    for (let y = Math.floor(h * 0.68); y < Math.floor(h * 0.95); y++) for (let x = 0; x < w; x++) px.set([88, 140, 212, 255], (y * w + x) * 4);
+    const r = detectRidge(px, w, h);
+    expect(r.method).toBe('sky');
+    let err = 0;
+    for (let x = 0; x < w; x++) err += Math.abs((r.y[x] ?? 0) - f((x + 0.5) / w));
+    expect(err / w).toBeLessThan(0.025);
+  });
+
+  it('flows around a cloud that does not read as sky', () => {
+    const px = scene(w, h, f);
+    // A dark, textured storm cloud blob hanging just above the ridge in the middle.
+    for (let y = Math.floor(h * 0.05); y < Math.floor(h * 0.25); y++) for (let x = 40; x < 90; x++) px.set((x + y) % 2 ? [90, 90, 100, 255] : [140, 140, 150, 255], (y * w + x) * 4);
+    const r = detectRidge(px, w, h);
+    expect(Math.abs(ridgeAt(r.y, 0.5) - f(0.5))).toBeLessThan(0.04);
+  });
+
   it('falls back to the strongest edge when there is no sky', () => {
     const px = scene(w, h, f);
     for (let i = 0; i < w * h * 4; i += 4) if ((px[i + 2] ?? 0) > 200) px.set([200, 150, 90, 255], i); // orange "sky"

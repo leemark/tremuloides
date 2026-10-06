@@ -38,3 +38,6 @@ Limitation: bright snowfields can read as sky, in which case the line follows th
 | `markers` | toggle | on |
 
 The live preview re-traces the skyline 4 times a second. Audio is always generated from the saved photo (the original when kept), so it matches what you captured.
+
+## v2: sky connected to the top (v0.17.1)
+v1 scanned each column up from 90% of the height and stopped at the first run of sky. A mirror-calm lake reflecting the sky fooled it: the line traced the reflection. Now sky pixels in the top 35% of the frame seed a 4-connected flood fill through sky (same wide-sky test), and the ridge is just below the lowest connected sky pixel in each column. Reflections are cut off from the real sky by mountains and shore, so they never connect. Clouds that don't read as sky are flowed around rather than stopping the scan. Tests: `ignores sky reflected in a lake`, `flows around a cloud`.
