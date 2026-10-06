@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.18.0 (2026-10-05)
+- New Long Exposure lens: tap the shutter and hold still for 1–10 seconds. Streams turn silky, clouds streak and aspens blur in the wind.
+- Three modes: Smooth, Light trails (keeps the brightest, for car lights or stars) and Ghost (soft trails behind a sharp moment)
+- Handheld steadying lines frames up, so small shakes don't blur the whole picture
+
 ## v0.17.2 (2026-10-05)
 - Stained Glass: open sky and still water become a few large panes, with the small panes saved for trees, ridges and detail, more like real leaded glass
 - Topo: calmer default contours on busy forest scenes (fewer tiny loops)

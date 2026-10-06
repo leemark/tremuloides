@@ -2,6 +2,13 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.18.0: Long Exposure
+1. Pick **Long Exposure**. The viewfinder already shows moving things blurring (wave your hand).
+2. Point at moving water or wind in the trees, brace the phone and tap the shutter. "Recording… N%" runs for 3 s.
+3. Open the photo. Still things (rocks, trunks) stay sharp and moving things are silky. Hold to compare with the first frame.
+4. Try **Light trails** on traffic or a flashlight at dusk, and **Ghost** on people walking.
+5. Turn **Handheld steadying** off and on with a handheld shot to compare.
+
 ## v0.17.2: Lens tuning
 1. **Stained Glass** on a scene with open sky. The sky is a few large panes and the trees have many small ones. Turn **Edge attraction** down for a more even mosaic.
 2. **Topo** on a busy forest. The contours are calmer; lower **Smoothing** if you want the old detail back.

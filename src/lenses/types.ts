@@ -70,7 +70,7 @@ export interface CaptureResult {
   image: ImageData;
   /** An unprocessed frame, kept as the "original" when available. */
   original?: ImageData;
-  method: 'burst' | 'slit-scan';
+  method: 'burst' | 'slit-scan' | 'long-exposure';
 }
 
 export interface RenderRequest {

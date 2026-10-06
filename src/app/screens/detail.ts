@@ -103,7 +103,7 @@ export function createDetail(app: App, id: string): Screen {
       const alt = c.geo.altitude !== null ? ` · ${Math.round(metersToFeet(c.geo.altitude)).toLocaleString()} ft (${Math.round(c.geo.altitude)} m)` : '';
       rows.append(infoRow('Location', `${c.geo.lat.toFixed(5)}, ${c.geo.lon.toFixed(5)}${alt}`));
     }
-    const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene', burst: 'Burst (Quake)', 'slit-scan': 'Slit-scan (Quake)', 'video-clip': 'Video clip' }[c.captureMethod ?? 'file'];
+    const method = { imagecapture: 'Camera photo', 'video-frame': 'Camera (video frame)', file: 'Imported file', 'test-pattern': 'Demo scene', burst: 'Burst (Quake)', 'slit-scan': 'Slit-scan (Quake)', 'video-clip': 'Video clip', 'long-exposure': 'Long exposure' }[c.captureMethod ?? 'file'];
     rows.append(infoRow('Source', `${method}${c.source === 'derived' ? ' · re-edit' : ''}`));
     if (c.albumSavedAt) rows.append(infoRow('Album', `Saved to phone ${formatDateTime(c.albumSavedAt)}`));
     rows.append(infoRow('App', `v${c.appVersion}`));
