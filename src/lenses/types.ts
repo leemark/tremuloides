@@ -86,6 +86,11 @@ export interface RenderRequest {
   quality: 'preview' | 'final';
   history?: FrameHistory;
   onProgress?: (fraction: number) => void;
+  /**
+   * Progressive lenses (Flow Painter) can show their work: draw in batches of `batch` strokes,
+   * write the current state into the target after each, and await `frame()`.
+   */
+  timelapse?: { batch: number; frame(fraction: number): Promise<void> };
 }
 
 export interface LensInstance {
@@ -116,12 +121,16 @@ export interface LensActionContext {
   setLabel(label: string): void;
   /** Runs when the photo screen closes. */
   onCleanup(fn: () => void): void;
+  /** Saves a generated video to the gallery (linked to this photo) and returns its id. */
+  saveVideo(clip: { blob: Blob; type: string; durationMs: number; width: number; height: number }, thumb: Blob | null): Promise<string>;
+  /** Opens a capture (e.g. a saved video) on the photo screen. */
+  open(id: string): void;
 }
 
 export interface LensAction {
   id: string;
   label: string;
-  icon: 'play' | 'audio' | 'midi' | 'svg';
+  icon: 'play' | 'audio' | 'midi' | 'svg' | 'film';
   run(ctx: LensActionContext): void | Promise<void>;
 }
 

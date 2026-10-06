@@ -128,7 +128,8 @@ export async function saveClip(
     params: Params;
     seed: number;
     createdAt: string;
-    geo?: Promise<GeoTag | null> | null;
+    parentId?: string;
+    geo?: Promise<GeoTag | null> | GeoTag | null;
   },
 ): Promise<Capture> {
   return s.busy.run(async () => {
@@ -138,7 +139,9 @@ export async function saveClip(
       {
         id,
         createdAt: o.createdAt,
-        source: 'camera',
+        source: o.parentId ? 'derived' : 'camera',
+        ...(o.parentId ? { parentId: o.parentId } : {}),
+        ...(o.geo && !(o.geo instanceof Promise) ? { geo: o.geo } : {}),
         outputType: o.type,
         lensId: o.lens.id,
         lensVersion: o.lens.version,
@@ -152,9 +155,11 @@ export async function saveClip(
       },
       { output: o.blob, thumb },
     );
-    void o.geo?.then(async (geo) => {
-      if (geo) await s.store.setGeo(id, geo).catch((e: unknown) => logEvent('warn', 'geo', 'Could not save location', e));
-    });
+    if (o.geo instanceof Promise) {
+      void o.geo.then(async (geo) => {
+        if (geo) await s.store.setGeo(id, geo).catch((e: unknown) => logEvent('warn', 'geo', 'Could not save location', e));
+      });
+    }
     return capture;
   });
 }

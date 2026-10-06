@@ -1,7 +1,8 @@
 import { COLOR_GLSL, GLSL_HEADER, Program, fragment, refScale, type GLKit, type RenderTarget } from '../../gl/kit';
 import { hexToRgb01 } from '../params';
 import type { Lens, Params, RenderRequest } from '../types';
-import { FINAL_SEGMENTS, PREVIEW_SEGMENTS, batches, planLayers, previewLayers, type LayerPlan, type PaintParams } from './plan';
+import { BATCH, FINAL_SEGMENTS, PREVIEW_SEGMENTS, batches, planLayers, previewLayers, type LayerPlan, type PaintParams } from './plan';
+import { timelapseAction } from './timelapse';
 import STROKE_VS from './shaders/stroke.vert.glsl?raw';
 import STROKE_FS from './shaders/stroke.frag.glsl?raw';
 import TENSOR from './shaders/tensor.frag.glsl?raw';
@@ -40,6 +41,7 @@ export const flowPainterLens: Lens = {
   version: 2,
   kind: 'still', // the viewfinder shows the coarse layers; full detail paints after capture
   seeded: true,
+  actions: [timelapseAction()],
   params: [
     { id: 'detail', label: 'Detail', type: 'range', min: 0.5, max: 2, step: 0.05, default: 1, help: 'More strokes, and fine brushes paint more of the picture' },
     { id: 'strokeLength', label: 'Stroke length', type: 'range', min: 10, max: 120, step: 1, default: 40 },
@@ -174,14 +176,23 @@ export const flowPainterLens: Lens = {
         const t: Targets = { src: null, a: null, b: null, paint: null };
         try {
           prepare(t, req, FINAL_FIELD_EDGE);
-          const list = batches(layers);
+          const tl = req.timelapse;
+          const list = batches(layers, tl ? Math.max(1, Math.round(tl.batch)) : BATCH);
           lastPlan = `final ${layers.length} layers · ${layers.reduce((n, l) => n + l.count, 0)} strokes · ${list.length} batches`;
+          if (tl) {
+            finish(req, t, target); // the underpainting
+            await tl.frame(0);
+          }
           for (let i = 0; i < list.length; i++) {
             const bt = list[i];
             const layer = bt && layers[bt.layer];
             if (!bt || !layer) continue;
             strokes(req, t, layer, bt.first, bt.count, FINAL_SEGMENTS);
-            if (i % 2 === 1) {
+            if (tl) {
+              finish(req, t, target);
+              await tl.frame((i + 1) / list.length);
+              if (gl.isContextLost()) throw new Error('Graphics context was lost while painting');
+            } else if (i % 2 === 1) {
               gl.flush();
               req.onProgress?.((i + 1) / list.length);
               await new Promise((r) => setTimeout(r, 0));

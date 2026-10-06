@@ -16,6 +16,15 @@ Everything runs on the GPU. The stroke geometry is built in the vertex shader, s
 
 The final render draws strokes in batches of 3000 and yields to the UI every 2 batches. Progress is reported through `onProgress`, shown as "Painting… N%". The live preview uses the same code with 8 segments per stroke instead of 12, and keeps only the coarsest layers that fit a 24,000-stroke budget.
 
+## Timelapse
+**Timelapse** on a Flow Painter photo repaints it from the original at 1440 px long edge in a private WebGL canvas (`GLAnimator`, `src/app/animate.ts`) and records it with MediaRecorder:
+- the photo for about 1 s,
+- the underpainting,
+- every stroke layer, coarse to fine, over about 8 s at 20 fps (`timelapseBatch` strokes per frame),
+- then the finished painting held for 2.5 s.
+
+The lens supports this through `RenderRequest.timelapse`: it presents its canvas after each batch. The video is saved to the gallery, linked to the photo. It needs the kept original.
+
 ## Params
 | Id | Range | Default | Notes |
 |---|---|---|---|

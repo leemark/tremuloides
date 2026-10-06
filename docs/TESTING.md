@@ -2,6 +2,12 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.12.0: Flow Painter timelapse
+1. Open a Flow Painter photo and tap **Timelapse**. The painting appears over the photo and builds up stroke by stroke, while the button counts up %.
+2. After about 12 s it opens the new video: photo → soft underpainting → big strokes → fine strokes → hold on the finished painting.
+3. The video is in the Gallery (▶ badge) and, if the album is on, in Google Photos.
+4. With Keep originals off, Timelapse says it needs the original.
+
 ## v0.11.0: Ink & Wash color fix
 1. Re-edit the backlit brown-leaf photo and the trail-walker photo with Ink & Wash, **Palette: San Juan**. Leaves and gravel stay brown, and the canopy is gold/amber, not red.
 2. Re-edit the looking-up trunk photo. The yellow canopy against blue sky shouldn't turn teal-green.
