@@ -1,5 +1,5 @@
 import type { App, Screen } from '../app';
-import { confirmDialog, formatDateTime, h, ICONS, toast } from '../ui';
+import { confirmDialog, formatDateTime, h, ICONS, openSheet, toast, type SheetHandle } from '../ui';
 import { getLens, lensExists } from '../../lenses/registry';
 import { sanitizeParams } from '../../lenses/params';
 import { paramSummary } from '../params-ui';
@@ -7,7 +7,8 @@ import { exportFilename, metersToFeet } from '../../util/format';
 import { downloadBlob, shareFiles } from '../share';
 import { extFor } from '../../storage/album';
 import { withExif } from '../export';
-import { clock, isVideoType } from '../video';
+import { clock, isVideoType, videoSupported } from '../video';
+import { makeRevealVideo, makeSideBySide } from '../compare';
 import { processAndSave, saveClip } from '../capture';
 import { randomSeed } from '../../util/prng';
 import type { Capture } from '../../storage/types';
@@ -152,6 +153,7 @@ export function createDetail(app: App, id: string): Screen {
             if (r === 'downloaded') toast('Original saved to Downloads');
           })
         : null,
+      c.originalKey ? action(ICONS.compare, 'Compare', () => openCompare(c)) : null,
       action(ICONS.download, 'Save', async () => {
         const f = await outputFile(c);
         if (f) {
@@ -258,6 +260,76 @@ export function createDetail(app: App, id: string): Screen {
     }
     actions.replaceChildren(...buttons.filter((b): b is HTMLButtonElement => b !== null));
   }
+
+  let sheet: SheetHandle | null = null;
+  let comparing = false;
+
+  /** Before/after: a looping wipe video (saved to the gallery) or a side-by-side image (shared). */
+  function openCompare(c: Capture) {
+    sheet?.close();
+    const status = h('p', { class: 'muted small', 'aria-live': 'polite' });
+    const run = async (kind: 'video' | 'image', btn: HTMLButtonElement) => {
+      if (comparing) return;
+      comparing = true;
+      for (const b of body.querySelectorAll('button')) b.disabled = true;
+      try {
+        const [orig, out] = await Promise.all([s.store.blob(c.originalKey), s.store.blob(c.outputKey)]);
+        if (!orig || !out) throw new Error('Photo data missing');
+        const base = filename(c).replace(/\.[a-z0-9]+$/, '');
+        if (kind === 'image') {
+          status.textContent = 'Making the image…';
+          const jpg = await makeSideBySide(orig, out);
+          sheet?.close();
+          const r = await shareFiles([new File([jpg], `${base}_before-after.jpg`, { type: 'image/jpeg' })]);
+          if (r === 'downloaded') toast('Saved to Downloads');
+          return;
+        }
+        const end = s.busy.begin();
+        try {
+          const { clip, thumb } = await makeRevealVideo(orig, out, (f) => {
+            btn.textContent = `Recording… ${Math.round(f * 100)}%`;
+          });
+          const lens = getLens(c.lensId);
+          const saved = await saveClip(s, {
+            ...clip,
+            thumb,
+            lens,
+            params: c.params,
+            seed: c.seed,
+            createdAt: new Date().toISOString(),
+            parentId: c.id,
+            ...(c.geo ? { geo: c.geo } : {}),
+          });
+          void s.album.sync();
+          sheet?.close();
+          toast('Before/after video saved to the gallery');
+          app.navigate({ name: 'detail', id: saved.id });
+        } finally {
+          end();
+        }
+      } catch (e) {
+        logEvent('error', 'compare', `${kind} failed`, e);
+        status.textContent = `Couldn’t make it: ${errorMessage(e)}`;
+        for (const b of body.querySelectorAll('button')) b.disabled = false;
+      } finally {
+        comparing = false;
+      }
+    };
+    const videoBtn = h('button', { class: 'btn btn-primary btn-block', text: 'Reveal video (loops, ~7 s)' });
+    videoBtn.addEventListener('click', () => void run('video', videoBtn));
+    const imageBtn = h('button', { class: 'btn btn-block', text: 'Side-by-side image' });
+    imageBtn.addEventListener('click', () => void run('image', imageBtn));
+    const body = h(
+      'div',
+      { class: 'compare-sheet' },
+      h('p', { class: 'muted small', text: 'Show the original next to the lens version.' }),
+      videoSupported() ? videoBtn : null,
+      imageBtn,
+      status,
+    );
+    sheet = openSheet('Before / after', body, { onClose: () => (sheet = null) });
+  }
+  cleanups.push(() => sheet?.close());
 
   // Hold to compare with the original
   let holdTimer = 0;

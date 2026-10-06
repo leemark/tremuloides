@@ -26,7 +26,7 @@ More are planned in [PRD.md](PRD.md) §14: Flow Painter and Topo.
 - **Swipe** sideways on the viewfinder to change lens. **Press and hold** to see the unprocessed original.
 - **Tap the lens name** to adjust its settings. Settings are remembered per lens.
 - **Import** applies a lens to a photo that's already on your phone.
-- In the **Gallery** you can share, save, re-edit (originals are kept), or delete.
+- In the **Gallery** you can share, save, re-edit (originals are kept), or delete. **Compare** makes a before/after reveal video or a side-by-side image.
 - **Phone album** (Settings): choose a folder such as Pictures › Tremuloides once, and every photo (and, optionally, its original) is also saved there as a normal file. Uses the File System Access API (Chrome 132+ on Android).
 - **Field Log** (Gallery → chart icon) is a color diary of the trip: palette stripes, an elevation chart, a map, and an exportable chromatograph poster.
 - **Settings** shows the version, offline status, the update check, storage, and Diagnostics (with *Copy diagnostics* for bug reports).

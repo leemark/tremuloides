@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.13.0 (2026-10-05)
+- Compare button on photos: make a looping before/after reveal video (the lens wipes across the original and back) or a side-by-side image to share
+- The reveal video is saved to the gallery and phone album
+
 ## v0.12.0 (2026-10-05)
 - Flow Painter Timelapse: on a Flow Painter photo, tap Timelapse to record a video of the painting being made: the photo, the underpainting, then the brush strokes from big to fine
 - You watch it paint live; the video is saved to your gallery and phone album

@@ -2,6 +2,12 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.13.0: Before/after
+1. Open any lens photo that has its original and tap **Compare**. A sheet offers Reveal video and Side-by-side image.
+2. **Side-by-side image**: the share sheet opens with original | lens.
+3. **Reveal video**: the button counts up %, then the video opens. The lens wipes in from the left behind a white divider, holds, then wipes back, so it loops cleanly. About 7 s.
+4. Videos don't show Compare (photos only).
+
 ## v0.12.0: Flow Painter timelapse
 1. Open a Flow Painter photo and tap **Timelapse**. The painting appears over the photo and builds up stroke by stroke, while the button counts up %.
 2. After about 12 s it opens the new video: photo → soft underpainting → big strokes → fine strokes → hold on the finished painting.
