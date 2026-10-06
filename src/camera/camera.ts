@@ -2,6 +2,7 @@ import { drawTestPattern } from './testpattern';
 import { pickRotation, type Gray, type Rotation } from './orient';
 import type { CaptureMethod } from '../storage/types';
 import { logEvent, errorMessage } from '../diagnostics/log';
+import { parseCapabilities, snap, type ControlCaps } from './controls';
 
 export interface StillResult {
   /** Upright image, as stored for "keep originals". */
@@ -21,6 +22,12 @@ export interface FrameSource {
   takeStill(mode: 'auto' | 'video'): Promise<StillResult>;
   stop(): void;
   info(): Record<string, unknown>;
+  /** Zoom / exposure / tap-to-focus support (absent or empty when the camera offers none). */
+  controls?(): ControlCaps;
+  setZoom?(zoom: number): Promise<void>;
+  setExposure?(ev: number): Promise<void>;
+  /** Focus and meter at a point of the frame (0–1, top-left origin). */
+  focusAt?(x: number, y: number): Promise<void>;
 }
 
 interface PhotoCapabilitiesLike {
@@ -206,6 +213,57 @@ export class CameraSource implements FrameSource {
     this.element.srcObject = null;
   }
 
+  private caps: ControlCaps | null = null;
+
+  controls(): ControlCaps {
+    if (!this.caps) {
+      let raw: unknown = null;
+      try {
+        raw = this.track.getCapabilities?.() ?? null;
+      } catch {
+        raw = null;
+      }
+      this.caps = parseCapabilities(raw);
+    }
+    return this.caps;
+  }
+
+  /** applyConstraints with `advanced` (Chrome's image-capture constraints); failures are logged, never thrown. */
+  private async apply(c: Record<string, unknown>, what: string): Promise<void> {
+    try {
+      await this.track.applyConstraints({ advanced: [c] } as unknown as MediaTrackConstraints);
+    } catch (e) {
+      logEvent('warn', 'camera', `${what} not applied`, e);
+    }
+  }
+
+  async setZoom(zoom: number): Promise<void> {
+    const r = this.controls().zoom;
+    if (r) await this.apply({ zoom: snap(zoom, r) }, 'Zoom');
+  }
+
+  async setExposure(ev: number): Promise<void> {
+    const r = this.controls().exposure;
+    if (!r) return;
+    const modes = this.controls().exposureModes;
+    await this.apply({ ...(modes.includes('continuous') ? { exposureMode: 'continuous' } : {}), exposureCompensation: snap(ev, r) }, 'Exposure');
+  }
+
+  async focusAt(x: number, y: number): Promise<void> {
+    const c = this.controls();
+    if (!c.focusPoint) return;
+    const focusMode = c.focusModes.includes('single-shot') ? 'single-shot' : c.focusModes.includes('continuous') ? 'continuous' : undefined;
+    await this.apply(
+      {
+        pointsOfInterest: [{ x, y }],
+        ...(focusMode ? { focusMode } : {}),
+        ...(c.exposureModes.includes('continuous') ? { exposureMode: 'continuous' } : {}),
+      },
+      'Tap to focus',
+    );
+    this.newFrame = true;
+  }
+
   info(): Record<string, unknown> {
     let capabilities: unknown = null;
     try {
@@ -249,8 +307,40 @@ export class TestPatternSource implements FrameSource {
   update(now: number): boolean {
     if (now - this.last < 33) return false; // ~30 fps is plenty
     this.last = now;
-    drawTestPattern(this.ctx, this.width, this.height, now);
+    const { ctx, width: w, height: h } = this;
+    ctx.save();
+    ctx.translate(this.focus.x * w, this.focus.y * h);
+    ctx.scale(this.zoom, this.zoom);
+    ctx.translate(-this.focus.x * w, -this.focus.y * h);
+    drawTestPattern(ctx, w, h, now);
+    ctx.restore();
+    if (this.ev) {
+      // Cheap stand-in for exposure: a light or dark veil.
+      ctx.fillStyle = this.ev > 0 ? `rgba(255,255,255,${Math.min(0.6, this.ev * 0.25)})` : `rgba(0,0,0,${Math.min(0.7, -this.ev * 0.3)})`;
+      ctx.fillRect(0, 0, w, h);
+    }
     return true;
+  }
+
+  // Simulated controls so the demo scene exercises the same UI as a real camera.
+  private zoom = 1;
+  private ev = 0;
+  private focus = { x: 0.5, y: 0.5 };
+
+  controls(): ControlCaps {
+    return { zoom: { min: 1, max: 4, step: 0.1 }, exposure: { min: -2, max: 2, step: 0.1 }, focusPoint: true, focusModes: ['continuous'], exposureModes: ['continuous'] };
+  }
+
+  async setZoom(zoom: number): Promise<void> {
+    this.zoom = Math.min(4, Math.max(1, zoom));
+  }
+
+  async setExposure(ev: number): Promise<void> {
+    this.ev = Math.min(2, Math.max(-2, ev));
+  }
+
+  async focusAt(x: number, y: number): Promise<void> {
+    this.focus = { x, y };
   }
 
   async takeStill(): Promise<StillResult> {

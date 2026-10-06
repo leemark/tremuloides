@@ -36,6 +36,7 @@ export async function buildReport(s: Services): Promise<Record<string, unknown>>
     },
     gl: s.renderer?.info() ?? { error: s.rendererError },
     camera: s.diag.camera,
+    cameraControls: s.diag.cameraControls ?? null,
     imageCaptureSupported: imageCaptureSupported(),
     preview: {
       lens: s.diag.lensId,

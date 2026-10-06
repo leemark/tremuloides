@@ -2,6 +2,13 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.17.0: Camera controls
+1. In the viewfinder, a zoom chip (1.0×) sits bottom right. **Pinch** to zoom; the chip follows. Tap the chip to jump between 1× and 2×.
+2. **Tap** the scene. A gold ring shows where it focuses, and a ☀ exposure bar appears. Drag it toward + on a backlit shot; it hides after 4 s.
+3. Tap the EV value to reset to ±0.
+4. Take a photo after zooming. Check whether the saved photo is zoomed too (phones differ; report what you see).
+5. Settings → Diagnostics → Copy: `cameraControls` lists what your phone supports.
+
 ## v0.16.0: Overlays
 1. Tap the lens name → scroll to **Overlay (any lens)** → **Contours**. Topo-style lines appear over the live lens; adjust **Overlay strength**.
 2. Try **Ink lines** over Flow Painter and over Stained Glass (preview and saved photo).

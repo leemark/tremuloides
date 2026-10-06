@@ -485,7 +485,7 @@ Turns the skyline of the photo into music.
 - **B1. Done in v0.6.1:** EXIF (DateTimeOriginal + offset, GPS + altitude, Software, lens parameters in UserComment) written into exported and album JPEGs (`src/util/exif.ts`). Camera originals that already carry EXIF are left untouched.
 - **B2.** Tiled rendering beyond `MAX_TEXTURE_SIZE` for full-resolution imports from dedicated cameras.
 - **B3.** Capacitor wrapper and an APK build in GitHub Actions, signed with a keystore stored as a repo secret.
-- **B4.** Zoom and tap-to-focus, where track capabilities allow.
+- **B4. Done in v0.17.0:** pinch zoom, tap to focus/meter and exposure compensation via track constraints (`src/camera/controls.ts`).
 - **B5. Done in v0.15.0:** lens presets (built-ins + user, `src/storage/presets.ts`). Shareable preset links not done.
 - **B6. Done in v0.14.0:** batch re-render of a selection with a lens (`src/app/batch.ts`).
 - **B7.** WebGPU code path.
