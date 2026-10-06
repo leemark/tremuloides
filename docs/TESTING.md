@@ -2,6 +2,13 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.14.0: Apply a lens to many photos
+1. Gallery → **Select** (top right) → tap several photos (and a video, to check it's skipped) → **Apply lens**.
+2. Pick a lens. The sheet shows its current settings. Tap **Render N photos with …**.
+3. A progress bar shows "Lens: 2 of 8"; new versions appear in the gallery as they finish.
+4. Tap **Stop** mid-way. It stops after the current photo.
+5. Leave the gallery and come back while it runs. It keeps going.
+
 ## v0.13.0: Before/after
 1. Open any lens photo that has its original and tap **Compare**. A sheet offers Reveal video and Side-by-side image.
 2. **Side-by-side image**: the share sheet opens with original | lens.

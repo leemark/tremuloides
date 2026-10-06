@@ -1321,3 +1321,50 @@ select {
   display: grid;
   gap: 10px;
 }
+
+/* ---------- Batch re-render ---------- */
+
+.batch-bar {
+  position: sticky;
+  bottom: 0;
+  padding: 10px calc(var(--safe-right) + 16px) calc(var(--safe-bottom) + 10px) calc(var(--safe-left) + 16px);
+  background: var(--surface-2);
+  border-top: 1px solid var(--line);
+}
+
+.batch-bar[hidden] {
+  display: none;
+}
+
+.batch-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+.batch-fill {
+  height: 100%;
+  width: 0;
+  background: var(--gold);
+  transition: width 0.3s ease;
+}
+
+.batch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.apply-sheet {
+  display: grid;
+  gap: 10px;
+}
+
+.apply-sheet .lens-item.on {
+  outline: 2px solid var(--gold);
+}

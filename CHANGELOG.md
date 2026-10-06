@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.14.0 (2026-10-05)
+- Apply a lens to many photos at once: in the Gallery, tap Select, pick photos, then Apply lens
+- Each photo is rendered again from its original; new versions are added alongside, nothing is replaced
+- A progress bar shows how far along it is, with a Stop button
+
 ## v0.13.0 (2026-10-05)
 - Compare button on photos: make a looping before/after reveal video (the lens wipes across the original and back) or a side-by-side image to share
 - The reveal video is saved to the gallery and phone album

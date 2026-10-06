@@ -1,5 +1,9 @@
 import type { App, Screen } from '../app';
-import { h, ICONS, iconButton, toast } from '../ui';
+import { h, ICONS, iconButton, openSheet, toast, type SheetHandle } from '../ui';
+import { batch, planBatch } from '../batch';
+import { STILL_LENSES } from '../../lenses/registry';
+import { currentLensState, lensStateFor } from '../capture';
+import { paramSummary } from '../params-ui';
 import { dayKey, exportFilename, formatDayHeading } from '../../util/format';
 import { shareFiles } from '../share';
 import { withExif } from '../export';
@@ -20,13 +24,86 @@ export function createGallery(app: App): Screen {
   const selectBtn = iconButton(ICONS.select, 'Select photos', () => toggleSelect());
   const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: 'Gallery' }), h('button', { class: 'btn btn-small fl-open', html: `${ICONS.log}<span>Field Log</span>`, onclick: () => app.navigate({ name: 'fieldlog' }) }), selectBtn);
   const shareSelected = h('button', { class: 'btn btn-primary', text: 'Share', onclick: () => void shareSelection() });
+  const applySelected = h('button', { class: 'btn', text: 'Apply lens', onclick: () => openApply() });
   const selectBar = h(
     'div',
     { class: 'select-bar', hidden: true },
     h('button', { class: 'btn', text: 'Cancel', onclick: () => toggleSelect(false) }),
+    applySelected,
     shareSelected,
   );
-  const el = h('div', { class: 'screen gallery' }, header, h('main', { class: 'gallery-scroll' }, empty, grid), selectBar);
+  const batchText = h('span', { class: 'batch-text' });
+  const batchFill = h('div', { class: 'batch-fill' });
+  const batchBar = h(
+    'div',
+    { class: 'batch-bar', hidden: true, role: 'status' },
+    h('div', { class: 'batch-track' }, batchFill),
+    h('div', { class: 'batch-row' }, batchText, h('button', { class: 'btn btn-small btn-ghost', text: 'Stop', onclick: () => batch.stop() })),
+  );
+  const el = h('div', { class: 'screen gallery' }, header, h('main', { class: 'gallery-scroll' }, empty, grid), batchBar, selectBar);
+  let sheet: SheetHandle | null = null;
+
+  function renderBatch() {
+    const st = batch.status;
+    batchBar.hidden = !st.running;
+    if (!st.running) return;
+    batchText.textContent = `${st.lensName}: ${Math.min(st.done + 1, st.total)} of ${st.total}${st.failed ? ` · ${st.failed} failed` : ''}`;
+    batchFill.style.width = `${(st.done / Math.max(1, st.total)) * 100}%`;
+  }
+
+  /** Pick a lens and re-render every selected photo with that lens's saved settings. */
+  function openApply() {
+    const plan = planBatch(captures, selected);
+    if (!plan.items.length) {
+      toast(plan.skippedVideos ? 'Videos can’t be re-rendered. Select photos.' : 'Select some photos first');
+      return;
+    }
+    if (batch.status.running) {
+      toast('Already rendering a batch');
+      return;
+    }
+    sheet?.close();
+    const current = currentLensState(s).lens.id;
+    let choice = STILL_LENSES.some((l) => l.id === current) ? current : (STILL_LENSES[0]?.id ?? 'ink-wash');
+    const summary = h('p', { class: 'muted small' });
+    const list = h('div', { class: 'lens-list' });
+    const go = h('button', { class: 'btn btn-primary btn-block' });
+    const renderChoice = () => {
+      const { lens, params } = lensStateFor(s, choice);
+      for (const b of list.querySelectorAll<HTMLButtonElement>('.lens-item')) b.classList.toggle('on', b.dataset.id === choice);
+      summary.textContent = lens.params.length ? `Settings: ${paramSummary(lens.params, params)}` : '';
+      go.textContent = `Render ${plan.items.length} photo${plan.items.length === 1 ? '' : 's'} with ${lens.name}`;
+    };
+    for (const l of STILL_LENSES) {
+      if (l.id === 'original') continue;
+      const b = h('button', { class: 'lens-item', 'data-id': l.id, onclick: () => { choice = l.id; renderChoice(); } }, h('span', { class: 'lens-item-name', text: l.name }), h('span', { class: 'lens-item-tagline', text: l.tagline }));
+      list.append(b);
+    }
+    go.addEventListener('click', () => {
+      const { lens, params } = lensStateFor(s, choice);
+      sheet?.close();
+      toggleSelect(false);
+      toast(`Rendering ${plan.items.length} with ${lens.name}. New versions appear as they finish.`);
+      void batch.run(s, plan.items, lens, params).then((st) => {
+        const made = st.done - st.failed;
+        toast(`${lens.name}: ${made} new photo${made === 1 ? '' : 's'}${st.failed ? `, ${st.failed} failed` : ''}${st.done < st.total ? ' (stopped)' : ''}`);
+      });
+    });
+    const notes: string[] = [];
+    if (plan.skippedVideos) notes.push(`${plan.skippedVideos} video${plan.skippedVideos === 1 ? '' : 's'} skipped.`);
+    if (plan.withoutOriginal) notes.push(`${plan.withoutOriginal} without an original will use the rendered image.`);
+    const body = h(
+      'div',
+      { class: 'apply-sheet' },
+      h('p', { class: 'muted small', text: `Each photo is rendered again from its original. The new versions are added to the gallery and nothing is replaced.${notes.length ? ` ${notes.join(' ')}` : ''}` }),
+      list,
+      summary,
+      h('p', { class: 'muted small', text: 'Uses each lens’s current settings. Change them in the viewfinder first if you like.' }),
+      go,
+    );
+    renderChoice();
+    sheet = openSheet(`Apply a lens to ${plan.items.length}`, body, { onClose: () => (sheet = null) });
+  }
 
   function toggleSelect(force?: boolean) {
     selecting = force ?? !selecting;
@@ -40,6 +117,7 @@ export function createGallery(app: App): Screen {
   function updateShareLabel() {
     shareSelected.textContent = selected.size ? `Share ${selected.size}` : 'Share';
     shareSelected.disabled = selected.size === 0;
+    applySelected.disabled = selected.size === 0;
   }
 
   async function shareSelection() {
@@ -99,11 +177,14 @@ export function createGallery(app: App): Screen {
   }
 
   let unsubscribe: (() => void) | null = null;
+  let offBatchRef: (() => void) | null = null;
 
   return {
     el,
     mount() {
       void load();
+      renderBatch();
+      offBatchRef = batch.onChange(() => renderBatch());
       // Photos still rendering when the gallery opened appear once they're saved.
       unsubscribe = s.queue.onChange((pending) => {
         if (pending === 0 && !selecting) void load();
@@ -111,6 +192,8 @@ export function createGallery(app: App): Screen {
     },
     unmount() {
       unsubscribe?.();
+      sheet?.close();
+      offBatchRef?.();
       for (const u of urls) URL.revokeObjectURL(u);
     },
   };
