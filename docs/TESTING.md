@@ -2,6 +2,11 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.17.2: Lens tuning
+1. **Stained Glass** on a scene with open sky. The sky is a few large panes and the trees have many small ones. Turn **Edge attraction** down for a more even mosaic.
+2. **Topo** on a busy forest. The contours are calmer; lower **Smoothing** if you want the old detail back.
+3. **Ink & Wash** on a sunset sky. The bands blend more softly.
+
 ## v0.17.1: Ridgeline lake fix
 1. Pick **Ridgeline Score** and point it at a mountain reflected in still water. The gold line should sit on the real ridge, not in the reflection.
 2. Re-edit the Crystal Lake photo with Ridgeline Score and tap Play.

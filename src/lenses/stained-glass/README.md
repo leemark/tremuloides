@@ -29,3 +29,6 @@ Turns the scene into leaded glass. The image is divided into Voronoi panes. Pane
 - G. Rong, T.-S. Tan. *Jump Flooding in GPU with Applications to Voronoi Diagram and Distance Transform.* I3D 2006.
 - A. Hausner. *Simulating Decorative Mosaics.* SIGGRAPH 2001.
 - Stained-glass filters in the tradition of Mould, *A Stained Glass Image Filter* (EGSR 2003).
+
+## v3 (v0.17.2)
+Seed density is (1 − attraction) × 0.12 + attraction × 8 × edge (was (1 − attraction) + attraction × 6 × edge). At the default attraction of 0.6, flat sky and water get about 100× fewer seeds than strong edges (was 10×), so they read as a few large panes.

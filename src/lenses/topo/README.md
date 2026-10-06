@@ -14,8 +14,8 @@ The final raster render uses the GPU path at full resolution rather than rasteri
 ## Params
 | Id | Range | Default | Notes |
 |---|---|---|---|
-| `levels` | 8–60 | 24 | Contours at L = k / levels |
-| `smoothing` | 0–20 ref px | 8 | Gaussian σ before contouring |
+| `levels` | 8–60 | 18 (24 before v2) | Contours at L = k / levels |
+| `smoothing` | 0–20 ref px | 12 (8 before v2) | Gaussian σ before contouring |
 | `style` | usgs / night / blueprint | usgs | Paper, line and index colors |
 | `hillshade` | toggle | on | Shaded relief under the lines |
 | `lineWeight` | 0.5–4 ref px | 1.2 | Index contours are 1.9× (raster) or 2× (SVG) |

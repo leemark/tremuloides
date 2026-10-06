@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.17.2 (2026-10-05)
+- Stained Glass: open sky and still water become a few large panes, with the small panes saved for trees, ridges and detail, more like real leaded glass
+- Topo: calmer default contours on busy forest scenes (fewer tiny loops)
+- Ink & Wash: softer transitions between bands in smooth skies and walls
+
 ## v0.17.1 (2026-10-05)
 - Ridgeline Score: follows the real mountain skyline instead of sky reflected in a calm lake
 

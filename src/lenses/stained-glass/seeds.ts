@@ -55,14 +55,16 @@ function boxBlur3(src: Float32Array, w: number, h: number): Float32Array {
 
 /**
  * Places `count` seeds (uv pairs, image space, v = 0 at the top) with probability
- * proportional to (1 - attraction) + attraction × 6 × edge. Deterministic for a given seed.
+ * proportional to (1 - attraction) × 0.12 + attraction × 8 × edge. Deterministic for a given seed.
+ * v3: flat areas (open sky, still water) get ~100× fewer seeds than strong edges at the default
+ * attraction (was ~10×), so skies read as a few large panes and detail gets the small ones.
  */
 export function placeSeeds(edges: Float32Array, w: number, h: number, count: number, attraction: number, seed: number): Float32Array {
   const a = Math.min(1, Math.max(0, attraction));
   const cdf = new Float64Array(w * h);
   let total = 0;
   for (let i = 0; i < w * h; i++) {
-    total += 1 - a + a * 6 * (edges[i] ?? 0);
+    total += (1 - a) * 0.12 + a * 8 * (edges[i] ?? 0);
     cdf[i] = total;
   }
   const rand = mulberry32(seed);
