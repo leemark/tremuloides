@@ -9,6 +9,7 @@ import type { OverlayConfig } from '../../gl/overlay';
 import { currentLensState, currentOverlay, processAndSave, saveCaptureResult, saveClip } from '../capture';
 import { makeThumb } from '../pipeline';
 import { ClipRecorder, clock, nextDuration, videoSupported } from '../video';
+import { formatEv, formatZoom, hasControls, pinchZoom, snap, viewToFrame, type ControlCaps } from '../../camera/controls';
 import { overlayControls, paramControls, presetBar } from '../params-ui';
 import { getPosition } from '../geo';
 import { randomSeed } from '../../util/prng';
@@ -73,7 +74,19 @@ export function createViewfinder(app: App): Screen {
   const compareBadge = h('div', { class: 'compare-badge', text: 'Original', hidden: true });
   const stillBadge = h('div', { class: 'still-badge', text: 'Full detail paints after capture', hidden: true });
   const notice = h('div', { class: 'notice', hidden: true });
-  stage.append(flash, compareBadge, stillBadge, fpsEl, notice);
+  const focusRing = h('div', { class: 'focus-ring', hidden: true });
+  stage.append(flash, compareBadge, stillBadge, fpsEl, notice, focusRing);
+
+  // ---------- Camera controls: pinch zoom, tap to focus, exposure ----------
+  let caps: ControlCaps | null = null;
+  let zoom = 1;
+  let ev = 0;
+  let evHideTimer = 0;
+  const zoomChip = h('button', { class: 'zoom-chip', hidden: true, 'aria-label': 'Zoom', onclick: () => void quickZoom() });
+  const evValue = h('button', { class: 'ev-value', 'aria-label': 'Reset exposure', onclick: () => void setEv(0) });
+  const evInput = h('input', { type: 'range', class: 'ev-range', 'aria-label': 'Exposure' });
+  evInput.addEventListener('input', () => void setEv(Number(evInput.value)));
+  const evBar = h('div', { class: 'ev-bar', hidden: true }, h('span', { class: 'ev-sun', text: '☀' }), evInput, evValue);
 
   const lensName = h('span', { class: 'lens-name' });
   const lensTagline = h('span', { class: 'lens-tagline' });
@@ -114,7 +127,85 @@ export function createViewfinder(app: App): Screen {
   const modeBar = h('div', { class: 'mode-bar', hidden: true }, h('div', { class: 'mode-seg', role: 'radiogroup', 'aria-label': 'Capture mode' }, photoBtn, videoBtn), durBtn);
   const bottombar = h('footer', { class: 'bottombar' }, thumb, shutter, side, fileInput);
 
-  const el = h('div', { class: 'screen viewfinder' }, stage, topbar, modeBar, bottombar, saving, recordingEl);
+  const el = h('div', { class: 'screen viewfinder' }, stage, topbar, evBar, zoomChip, modeBar, bottombar, saving, recordingEl);
+
+  function setupControls() {
+    caps = source?.controls?.() ?? null;
+    zoom = caps?.zoom?.min ?? 1;
+    ev = 0;
+    zoomChip.hidden = !caps?.zoom;
+    zoomChip.textContent = formatZoom(zoom);
+    evBar.hidden = true;
+    if (caps?.exposure) {
+      evInput.min = String(caps.exposure.min);
+      evInput.max = String(caps.exposure.max);
+      evInput.step = String(caps.exposure.step);
+      evInput.value = '0';
+      evValue.textContent = formatEv(0);
+    }
+    s.diag.cameraControls = caps && hasControls(caps) ? { zoom: caps.zoom, exposure: caps.exposure, focusPoint: caps.focusPoint } : null;
+  }
+
+  let zoomPending = false;
+  function applyZoom(z: number) {
+    if (!caps?.zoom) return;
+    zoom = snap(z, caps.zoom);
+    zoomChip.textContent = formatZoom(zoom);
+    if (zoomPending) return; // one applyConstraints in flight at a time; the latest value wins
+    zoomPending = true;
+    void (async () => {
+      let sent = NaN;
+      while (sent !== zoom) {
+        sent = zoom;
+        await source?.setZoom?.(sent);
+      }
+      zoomPending = false;
+      dirty = true;
+    })();
+  }
+
+  async function quickZoom() {
+    if (!caps?.zoom) return;
+    const two = Math.min(caps.zoom.max, caps.zoom.min * 2);
+    applyZoom(zoom < two - 0.05 ? two : caps.zoom.min);
+  }
+
+  async function setEv(v: number) {
+    if (!caps?.exposure) return;
+    ev = snap(v, caps.exposure);
+    evInput.value = String(ev);
+    evValue.textContent = formatEv(ev);
+    showEv();
+    await source?.setExposure?.(ev);
+    dirty = true;
+  }
+
+  function showEv() {
+    if (!caps?.exposure) return;
+    evBar.hidden = false;
+    clearTimeout(evHideTimer);
+    evHideTimer = window.setTimeout(() => (evBar.hidden = true), 4000);
+  }
+  evBar.addEventListener('pointerdown', () => clearTimeout(evHideTimer));
+  evBar.addEventListener('pointerup', () => showEv());
+
+  async function tapFocus(clientX: number, clientY: number) {
+    if (!caps?.focusPoint || !source) return;
+    const r = stage.getBoundingClientRect();
+    const vx = (clientX - r.left) / r.width;
+    const vy = (clientY - r.top) / r.height;
+    focusRing.style.left = `${clientX - r.left}px`;
+    focusRing.style.top = `${clientY - r.top}px`;
+    focusRing.hidden = false;
+    focusRing.classList.remove('go');
+    void focusRing.offsetWidth;
+    focusRing.classList.add('go');
+    window.setTimeout(() => (focusRing.hidden = true), 1200);
+    showEv();
+    const p = viewToFrame(vx, vy, source.width / source.height, r.width / r.height);
+    await source.focusAt?.(p.x, p.y);
+    dirty = true;
+  }
 
   function renderLensLabel() {
     lensName.textContent = lens.name;
@@ -239,11 +330,33 @@ export function createViewfinder(app: App): Screen {
   }
 
   // ---------- Gestures: swipe = change lens, hold = show original ----------
-  let down: { x: number; y: number; id: number } | null = null;
+  // Gestures: swipe = change lens, hold = show original, tap = focus, pinch = zoom.
+  let down: { x: number; y: number; id: number; t: number } | null = null;
   let holdTimer = 0;
+  const pointers = new Map<number, { x: number; y: number }>();
+  let pinch: { dist: number; zoom: number } | null = null;
+  let pinched = false; // suppress tap/swipe until every finger lifts
+  const spread = () => {
+    const [a, b] = [...pointers.values()];
+    return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0;
+  };
   stage.addEventListener('pointerdown', (e) => {
-    down = { x: e.clientX, y: e.clientY, id: e.pointerId };
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     stage.setPointerCapture(e.pointerId);
+    if (pointers.size === 2) {
+      clearTimeout(holdTimer);
+      down = null;
+      pinched = true;
+      if (comparing) {
+        comparing = false;
+        compareBadge.hidden = true;
+        dirty = true;
+      }
+      if (caps?.zoom) pinch = { dist: spread(), zoom };
+      return;
+    }
+    if (pointers.size > 2) return;
+    down = { x: e.clientX, y: e.clientY, id: e.pointerId, t: performance.now() };
     holdTimer = window.setTimeout(() => {
       comparing = true;
       compareBadge.hidden = false;
@@ -251,11 +364,23 @@ export function createViewfinder(app: App): Screen {
     }, 220);
   });
   stage.addEventListener('pointermove', (e) => {
+    if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && caps?.zoom && pointers.size >= 2) {
+      applyZoom(pinchZoom(pinch.zoom, pinch.dist, spread(), caps.zoom));
+      return;
+    }
     if (!down || comparing) return;
     if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > 12) clearTimeout(holdTimer);
   });
   const endPointer = (e: PointerEvent) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinch = null;
     clearTimeout(holdTimer);
+    if (pinched) {
+      if (pointers.size === 0) pinched = false;
+      down = null;
+      return;
+    }
     if (!down) return;
     const dx = e.clientX - down.x;
     const dy = e.clientY - down.y;
@@ -266,6 +391,8 @@ export function createViewfinder(app: App): Screen {
     } else if (e.type === 'pointerup' && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       setLens(adjacentLens(lens.id, dx < 0 ? 1 : -1));
       toast(lens.name, { duration: 900 });
+    } else if (e.type === 'pointerup' && Math.hypot(dx, dy) < 10 && performance.now() - down.t < 300) {
+      void tapFocus(e.clientX, e.clientY);
     }
     down = null;
   };
@@ -288,6 +415,7 @@ export function createViewfinder(app: App): Screen {
       if (result.ok) {
         source = result.source;
         s.diag.camera = source.info();
+        setupControls();
         return;
       }
       showNotice(
@@ -298,6 +426,7 @@ export function createViewfinder(app: App): Screen {
     }
     source = new TestPatternSource(portrait);
     s.diag.camera = source.info();
+    setupControls();
   }
 
   function showNotice(message: string) {

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.17.0 (2026-10-05)
+- Camera controls, where your phone allows them: pinch to zoom, tap to focus and meter, and an exposure slider
+- Tap the zoom chip (bottom right) to jump between 1× and 2×
+- After tapping to focus, slide the ☀ bar to brighten or darken; tap the EV value to reset
+
 ## v0.16.0 (2026-10-05)
 - Overlays: draw ink lines or topo contour lines over any lens, e.g. contours over Ink & Wash, or ink outlines over Flow Painter or Stained Glass
 - Find it under the lens settings: Overlay (any lens), with a strength slider

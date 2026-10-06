@@ -16,6 +16,8 @@ export interface DiagState {
   fps: number;
   previewScale: number;
   lensId: string;
+  /** Zoom / exposure / tap-to-focus the current camera offers (null if none). */
+  cameraControls?: Record<string, unknown> | null;
 }
 
 export interface Services {
