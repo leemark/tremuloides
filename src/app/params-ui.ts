@@ -1,5 +1,6 @@
-import { h } from './ui';
-import type { ParamSpec, Params, ParamValue } from '../lenses/types';
+import { confirmDialog, h, promptText, toast } from './ui';
+import type { Lens, ParamSpec, Params, ParamValue } from '../lenses/types';
+import { MAX_NAME, presetMatches, presetParams, type PresetStore } from '../storage/presets';
 
 function formatNumber(v: number, step: number): string {
   const decimals = step >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(step)));
@@ -96,4 +97,56 @@ export function paramSummary(specs: readonly ParamSpec[], values: Params): strin
       return `${s.label} ${String(v)}`;
     })
     .join(' · ');
+}
+
+/**
+ * Preset chips for a lens: built-ins, the user's own (with ✕ to delete), and "＋ Save".
+ * The chip matching the current settings is highlighted. `getParams` returns the live params.
+ */
+export function presetBar(store: PresetStore, lens: Lens, getParams: () => Params, apply: (next: Params) => void): HTMLElement & { refresh(): void } {
+  const row = h('div', { class: 'preset-row', role: 'group', 'aria-label': 'Presets' });
+  const render = () => {
+    const params = getParams();
+    row.replaceChildren(
+      h('span', { class: 'preset-label', text: 'Presets' }),
+      ...store.list(lens.id).map((p) => {
+        const on = presetMatches(lens.params, p, params);
+        const chip = h('button', {
+          class: `preset-chip ${on ? 'on' : ''}`,
+          'aria-pressed': String(on),
+          text: p.name,
+          onclick: () => {
+            apply(presetParams(lens.params, p));
+            render();
+          },
+        });
+        if (p.builtIn) return chip;
+        const del = h('button', {
+          class: 'preset-del',
+          'aria-label': `Delete preset ${p.name}`,
+          text: '×',
+          onclick: async (e: Event) => {
+            e.stopPropagation();
+            if (!(await confirmDialog(`Delete the preset “${p.name}”?`, 'Delete', true))) return;
+            store.remove(p.id);
+            render();
+          },
+        });
+        return h('span', { class: 'preset-own' }, chip, del);
+      }),
+      h('button', {
+        class: 'preset-chip preset-add',
+        text: '＋ Save',
+        onclick: async () => {
+          const name = await promptText(`Save these ${lens.name} settings as a preset`, { placeholder: 'e.g. Golden hour', okLabel: 'Save', maxLength: MAX_NAME });
+          if (!name) return;
+          store.add(lens.id, name, getParams());
+          toast(`Saved preset “${name}”`);
+          render();
+        },
+      }),
+    );
+  };
+  render();
+  return Object.assign(row, { refresh: render });
 }

@@ -7,6 +7,8 @@ import { CaptureQueue } from './queue';
 import { FieldLogService } from '../fieldlog/service';
 import { PhoneAlbum, type DirHandleLike } from '../storage/album';
 import { withExif } from './export';
+import { PresetStore } from '../storage/presets';
+import { safeKV } from '../storage/settings';
 import { logEvent, errorMessage } from '../diagnostics/log';
 
 export interface DiagState {
@@ -21,6 +23,7 @@ export interface Services {
   rendererError: string | null;
   store: CaptureStore;
   settings: SettingsStore;
+  presets: PresetStore;
   pwa: PwaManager;
   busy: Busy;
   queue: CaptureQueue;
@@ -59,6 +62,7 @@ export function createServices(): Services {
       defer: (c) => settings.get().locationTagging && !c.geo && Date.now() - new Date(c.createdAt).getTime() < 20_000,
     }),
     settings,
+    presets: new PresetStore(safeKV()),
     pwa: new PwaManager(settings),
     busy: new Busy(),
     queue: new CaptureQueue(),

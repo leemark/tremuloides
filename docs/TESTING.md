@@ -2,6 +2,13 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.15.0: Presets
+1. Tap the lens name in the viewfinder. A **Presets** row sits at the top. Tap one (e.g. Ink & Wash → San Juan poster). The sliders jump and the chip lights up.
+2. Move a slider. The chip un-highlights.
+3. Tap **＋ Save**, name it, and Save. Your preset appears and is highlighted.
+4. Open Import or Re-edit. The same presets are there.
+5. Tap **×** on your preset and confirm. It's gone; built-ins can't be deleted.
+
 ## v0.14.0: Apply a lens to many photos
 1. Gallery → **Select** (top right) → tap several photos (and a video, to check it's skipped) → **Apply lens**.
 2. Pick a lens. The sheet shows its current settings. Tap **Render N photos with …**.

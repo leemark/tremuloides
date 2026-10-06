@@ -133,6 +133,32 @@ export function confirmDialog(message: string, confirmLabel = 'OK', danger = fal
   });
 }
 
+/** Asks for a short line of text (e.g. a preset name). Resolves null on cancel. */
+export function promptText(message: string, opts: { value?: string; placeholder?: string; okLabel?: string; maxLength?: number } = {}): Promise<string | null> {
+  return new Promise((resolve) => {
+    const input = h('input', { type: 'text', autocomplete: 'off', placeholder: opts.placeholder ?? '', maxlength: opts.maxLength ?? 40, 'aria-label': message });
+    input.value = opts.value ?? '';
+    const ok = h('button', { class: 'btn btn-primary', text: opts.okLabel ?? 'OK' });
+    const done = (v: string | null) => {
+      backdrop.remove();
+      resolve(v);
+    };
+    ok.addEventListener('click', () => done(input.value.trim() || null));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') done(input.value.trim() || null);
+      if (e.key === 'Escape') done(null);
+    });
+    const backdrop = h(
+      'div',
+      { class: 'dialog-backdrop' },
+      h('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true' }, h('p', { text: message }), input, h('div', { class: 'dialog-actions' }, h('button', { class: 'btn', text: 'Cancel', onclick: () => done(null) }), ok)),
+    );
+    document.body.append(backdrop);
+    input.focus();
+    input.select();
+  });
+}
+
 /** Asks the user to type `word` to confirm a destructive action. */
 export function typedConfirm(message: string, word: string): Promise<boolean> {
   return new Promise((resolve) => {
