@@ -1368,3 +1368,83 @@ select {
 .apply-sheet .lens-item.on {
   outline: 2px solid var(--gold);
 }
+
+/* ---------- Presets ---------- */
+
+.preset-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 10px;
+  align-items: center;
+  scrollbar-width: none;
+}
+
+.preset-label {
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.preset-chip {
+  flex: none;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.preset-chip.on {
+  background: var(--gold);
+  color: var(--ink);
+  border-color: var(--gold);
+}
+
+.preset-add {
+  border-style: dashed;
+  background: transparent;
+}
+
+.preset-own {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.preset-own .preset-chip {
+  padding-right: 34px;
+}
+
+.preset-del {
+  margin-left: -32px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.dialog input[type='text'] {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  margin-top: 8px;
+}

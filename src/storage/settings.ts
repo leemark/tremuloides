@@ -45,7 +45,7 @@ export interface KV {
 
 const PREFIX = 'trem:';
 
-function safeKV(): KV {
+export function safeKV(): KV {
   try {
     const ls = globalThis.localStorage;
     ls.setItem(`${PREFIX}probe`, '1');

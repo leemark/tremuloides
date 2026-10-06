@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.15.0 (2026-10-05)
+- Presets: a row of one-tap looks at the top of every lens's settings, in the viewfinder and the editor
+- Starters for each lens, like Ink & Wash "San Juan poster", Stained Glass "Cathedral" and Flow Painter "Broad strokes"
+- Tap "＋ Save" to keep your own settings as a named preset; tap × to delete one
+
 ## v0.14.0 (2026-10-05)
 - Apply a lens to many photos at once: in the Gallery, tap Select, pick photos, then Apply lens
 - Each photo is rendered again from its original; new versions are added alongside, nothing is replaced

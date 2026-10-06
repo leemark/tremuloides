@@ -486,7 +486,7 @@ Turns the skyline of the photo into music.
 - **B2.** Tiled rendering beyond `MAX_TEXTURE_SIZE` for full-resolution imports from dedicated cameras.
 - **B3.** Capacitor wrapper and an APK build in GitHub Actions, signed with a keystore stored as a repo secret.
 - **B4.** Zoom and tap-to-focus, where track capabilities allow.
-- **B5.** Lens presets, and shareable preset links.
+- **B5. Done in v0.15.0:** lens presets (built-ins + user, `src/storage/presets.ts`). Shareable preset links not done.
 - **B6. Done in v0.14.0:** batch re-render of a selection with a lens (`src/app/batch.ts`).
 - **B7.** WebGPU code path.
 - **Done in v0.10.0: lens video clips.** 5/10/15 s MediaRecorder clips of the live viewfinder for realtime lenses (`src/app/video.ts`), stored as captures with `outputType` video/*.

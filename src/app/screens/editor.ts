@@ -3,7 +3,7 @@ import { h, ICONS, iconButton, toast } from '../ui';
 import { DEFAULT_LENS_ID, STILL_LENSES } from '../../lenses/registry';
 import { defaultParams } from '../../lenses/params';
 import { lensStateFor, processAndSave } from '../capture';
-import { paramControls } from '../params-ui';
+import { paramControls, presetBar } from '../params-ui';
 import { finalRenderSize } from '../../gl/fit';
 import { randomSeed } from '../../util/prng';
 import { logEvent, errorMessage } from '../../diagnostics/log';
@@ -65,9 +65,16 @@ export function createEditor(app: App, input: EditorInput): Screen {
   }
 
   function buildParams() {
+    const bar = presetBar(s.presets, lens, () => params, (next) => {
+      params = next;
+      buildParams();
+      redraw();
+    });
     paramsHost.replaceChildren(
+      bar,
       paramControls(lens.params, params, (next) => {
         params = next;
+        bar.refresh();
         redraw();
       }),
     );

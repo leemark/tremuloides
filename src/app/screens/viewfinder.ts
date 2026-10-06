@@ -8,7 +8,7 @@ import type { Lens, Params } from '../../lenses/types';
 import { currentLensState, processAndSave, saveCaptureResult, saveClip } from '../capture';
 import { makeThumb } from '../pipeline';
 import { ClipRecorder, clock, nextDuration, videoSupported } from '../video';
-import { paramControls } from '../params-ui';
+import { paramControls, presetBar } from '../params-ui';
 import { getPosition } from '../geo';
 import { randomSeed } from '../../util/prng';
 import { logEvent, errorMessage } from '../../diagnostics/log';
@@ -168,8 +168,16 @@ export function createViewfinder(app: App): Screen {
     sheet?.close();
     const container = h('div');
     const build = () => {
+      const bar = presetBar(s.presets, lens, () => params, (next) => {
+        setParams(next);
+        build();
+      });
       container.replaceChildren(
-        paramControls(lens.params, params, setParams),
+        bar,
+        paramControls(lens.params, params, (next) => {
+          setParams(next);
+          bar.refresh();
+        }),
         h(
           'div',
           { class: 'sheet-actions' },
