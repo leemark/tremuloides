@@ -23,12 +23,12 @@ export const topoLens: Lens = {
   id: 'topo',
   name: 'Topo',
   tagline: 'Light as elevation: a contour map of the scene',
-  version: 1,
+  version: 2,
   kind: 'realtime',
   seeded: false,
   params: [
-    { id: 'levels', label: 'Contour levels', type: 'range', min: 8, max: 60, step: 1, default: 24, help: 'Every 5th line is a thicker index contour' },
-    { id: 'smoothing', label: 'Smoothing', type: 'range', min: 0, max: 20, step: 0.5, default: 8, help: 'Higher = calmer, rounder lines' },
+    { id: 'levels', label: 'Contour levels', type: 'range', min: 8, max: 60, step: 1, default: 18, help: 'Every 5th line is a thicker index contour' },
+    { id: 'smoothing', label: 'Smoothing', type: 'range', min: 0, max: 20, step: 0.5, default: 12, help: 'Higher = calmer, rounder lines' },
     {
       id: 'style',
       label: 'Style',

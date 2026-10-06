@@ -55,7 +55,7 @@ export const inkWashLens: Lens = {
   id: 'ink-wash',
   name: 'Ink & Wash',
   tagline: 'Painterly brushwork with inked edges',
-  version: 3,
+  version: 4,
   kind: 'realtime',
   seeded: false,
   params: [

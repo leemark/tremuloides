@@ -55,7 +55,7 @@ float softQuantize(float x, float levels) {
   float y = x * levels - 0.5;
   float n = floor(y);
   float f = y - n;
-  return clamp((n + smoothstep(0.38, 0.62, f) + 0.5) / levels, 0.0, 1.0);
+  return clamp((n + smoothstep(0.3, 0.7, f) + 0.5) / levels, 0.0, 1.0);
 }
 
 void main() {
