@@ -2,6 +2,11 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.17.1: Ridgeline lake fix
+1. Pick **Ridgeline Score** and point it at a mountain reflected in still water. The gold line should sit on the real ridge, not in the reflection.
+2. Re-edit the Crystal Lake photo with Ridgeline Score and tap Play.
+3. A scene with clouds above the ridge still traces the ridge.
+
 ## v0.17.0: Camera controls
 1. In the viewfinder, a zoom chip (1.0×) sits bottom right. **Pinch** to zoom; the chip follows. Tap the chip to jump between 1× and 2×.
 2. **Tap** the scene. A gold ring shows where it focuses, and a ☀ exposure bar appears. Drag it toward + on a backlit shot; it hides after 4 s.

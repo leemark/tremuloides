@@ -102,12 +102,18 @@ function clean(raw: Float32Array): Float32Array {
   return medianFilter(fillGaps(y), 2);
 }
 
+/** Sky must start this high in the frame to count (seeds for the flood fill). */
+export const SKY_SEED_FRACTION = 0.35;
+
 /**
- * Finds the skyline: for each column, scan UP from near the bottom (ground) until a run of 4 sky
- * rows starts; the ridge is just below that run. Scanning from the ground means clouds above
- * the mountains can't stop the scan early (field-tested: top-down scans stopped at cloud edges).
- * The bottom 10% is skipped so lakes reflecting the sky don't end the scan. Falls back to the
- * strongest horizontal edge when fewer than half the columns find sky.
+ * Finds the skyline as the lower edge of the sky that is CONNECTED to the top of the frame.
+ * Sky pixels in the top 35% seed a flood fill (4-connected) through sky; for each column the
+ * ridge is just below the lowest connected sky pixel.
+ * - Lakes reflecting the sky are separated from the real sky by mountains and shore, so they
+ *   never connect (v0.17.1: a mirror-calm lake fooled the old bottom-up scan).
+ * - Clouds that don't read as sky are flowed around, not stopped at (the reason v0.7 scanned
+ *   from the ground up).
+ * Falls back to the strongest horizontal edge when fewer than half the columns find sky.
  */
 export function detectRidge(rgba: ArrayLike<number>, w: number, h: number): Ridge {
   const p = planes(rgba, w, h);
@@ -119,28 +125,26 @@ export function detectRidge(rgba: ArrayLike<number>, w: number, h: number): Ridg
     const r = y * w;
     return raw0[r + x] === 1 && raw0[r + Math.max(0, x - 3)] === 1 && raw0[r + Math.min(w - 1, x + 3)] === 1;
   };
+  const connected = topConnectedSky(w, h, sky);
   const raw = new Float32Array(w).fill(NaN);
   let good = 0;
-  const RUN = 4;
   for (let x = 0; x < w; x++) {
-    let run = 0;
-    for (let y = Math.floor(h * 0.9); y >= 0; y--) {
-      if (!sky(x, y)) {
-        run = 0;
-        continue;
-      }
-      if (++run >= RUN) {
-        // The wide-sky test biases the edge up on steep slopes; slide down to the exact
-        // per-pixel boundary, at most 5 rows (so a trunk can't drag it down).
-        let ry = y + RUN;
-        for (let k = 0; k < 5 && ry < h && raw0[ry * w + x] === 1; k++) ry++;
-        const ridgeY = ry / h;
-        if (ridgeY > 0.03 && ridgeY < 0.9) {
-          raw[x] = ridgeY;
-          good++;
-        }
+    let low = -1;
+    for (let y = h - 1; y >= 0; y--) {
+      if (connected[y * w + x]) {
+        low = y;
         break;
       }
+    }
+    if (low < 0) continue;
+    // The wide-sky test biases the edge up on steep slopes; slide down to the exact
+    // per-pixel boundary, at most 5 rows (so a trunk can't drag it down).
+    let ry = low + 1;
+    for (let k = 0; k < 5 && ry < h && raw0[ry * w + x] === 1; k++) ry++;
+    const ridgeY = ry / h;
+    if (ridgeY > 0.03 && ridgeY < 0.97) {
+      raw[x] = ridgeY;
+      good++;
     }
   }
   const confidence = good / w;
@@ -163,6 +167,38 @@ export function detectRidge(rgba: ArrayLike<number>, w: number, h: number): Ridg
     edge[x] = (bestY + 1) / h;
   }
   return { y: clean(edge), confidence, method: 'edge' };
+}
+
+/** Flood fill (4-connected) through `sky` from sky pixels in the top SKY_SEED_FRACTION of rows. */
+export function topConnectedSky(w: number, h: number, sky: (x: number, y: number) => boolean): Uint8Array {
+  const seen = new Uint8Array(w * h);
+  const stack: number[] = [];
+  const seedRows = Math.max(1, Math.floor(h * SKY_SEED_FRACTION));
+  for (let y = 0; y < seedRows; y++) {
+    for (let x = 0; x < w; x++) {
+      if (sky(x, y)) {
+        seen[y * w + x] = 1;
+        stack.push(y * w + x);
+      }
+    }
+  }
+  while (stack.length) {
+    const i = stack.pop() as number;
+    const x = i % w;
+    const y = (i - x) / w;
+    const visit = (nx: number, ny: number) => {
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) return;
+      const j = ny * w + nx;
+      if (seen[j] || !sky(nx, ny)) return;
+      seen[j] = 1;
+      stack.push(j);
+    };
+    visit(x - 1, y);
+    visit(x + 1, y);
+    visit(x, y - 1);
+    visit(x, y + 1);
+  }
+  return seen;
 }
 
 /** Ridge y (0–1 from top) at horizontal position u (0–1), linearly interpolated. */

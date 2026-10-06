@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.17.1 (2026-10-05)
+- Ridgeline Score: follows the real mountain skyline instead of sky reflected in a calm lake
+
 ## v0.17.0 (2026-10-05)
 - Camera controls, where your phone allows them: pinch to zoom, tap to focus and meter, and an exposure slider
 - Tap the zoom chip (bottom right) to jump between 1× and 2×
