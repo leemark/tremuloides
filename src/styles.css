@@ -1316,3 +1316,8 @@ select {
   pointer-events: none;
   z-index: 2;
 }
+
+.compare-sheet {
+  display: grid;
+  gap: 10px;
+}

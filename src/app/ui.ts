@@ -40,6 +40,7 @@ export const ICONS = {
   play: svg('<path d="M7 4l13 8-13 8z" fill="currentColor"/>'),
   audio: svg('<path d="M3 10v4M7 7v10M11 4v16M15 8v8M19 11v2"/>'),
   midi: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v9M12 4v9M16 4v9"/>'),
+  compare: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 2v20"/><path d="M3 15l5-5 4 4" />'),
   film: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>'),
   svgfile: svg('<path d="M4 18c3-8 6-8 8-4s5 4 8-4"/><path d="M4 12c3-6 6-6 8-3s5 3 8-3"/>'),
   log: svg('<path d="M3 20h18"/><path d="M5 16l4-6 4 3 6-9"/><circle cx="19" cy="4" r="1.5"/>'),
