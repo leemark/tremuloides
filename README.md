@@ -11,6 +11,7 @@ Built for field use. Once installed, it works with no connection at all. When yo
 |---|---|
 | Original | Plain photo, so you can re-edit it later with any lens |
 | Ink & Wash (default) | Painterly strokes (anisotropic Kuwahara), palette stylization, ink edges |
+| Long Exposure | Seconds of live frames stacked into one photo: silky water, wind-blurred aspens, light trails |
 | Quake | Time displacement (Rows, Columns, Radial, Luma) and slit-scan from live video |
 | Stained Glass | Voronoi panes (jump flooding) packed along edges, with lead came, glow and glass texture |
 | Ridgeline Score | Traces the skyline and plays it as a melody (Play, WAV, MIDI on saved photos) |
