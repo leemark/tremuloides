@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.20.0 (2026-10-05)
+- New Papercut lens: the scene as layered paper cut-outs with soft shadows, like a shadow box. Great on layered mountain ridges.
+- Choose the number of layers, cut smoothness, shadow depth, and paper (photo colors, white card or kraft)
+
 ## v0.19.0 (2026-10-05)
 - New Aerochrome lens: the infrared film look, where leaves turn crimson and magenta and skies go deep, with a soft infrared glow
 - Films: Aerochrome, Hot pink, and Mono IR (white glowing trees under a dark sky)
