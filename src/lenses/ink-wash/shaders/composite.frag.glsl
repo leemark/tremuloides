@@ -4,7 +4,8 @@ out vec4 outColor;
 uniform sampler2D u_paint; // Kuwahara output
 uniform sampler2D u_ink;
 uniform int u_mode;        // 0 Auto, 1 San Juan, 2 Gouache, 3 Mono ink
-uniform vec3 u_palette[12]; // Oklab
+uniform vec3 u_palette[16]; // Oklab
+uniform float u_strength;   // 0 = photo colors, 1 = full palette (Auto / San Juan)
 uniform int u_count;
 uniform float u_blendK;
 uniform float u_levels;
@@ -24,12 +25,25 @@ float noise(vec2 p) {
   return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
 }
 
+// Hue-aware palette distance; mirrors src/color/match.ts (keep them in step).
+float paletteDistance(vec3 p, vec3 s) {
+  float dL = p.x - s.x;
+  float dab = distance(p.yz, s.yz);
+  float d = sqrt(0.5 * dL * dL + dab * dab);
+  float cp = length(p.yz);
+  float cs = length(s.yz);
+  float w = clamp((cp - 0.015) / 0.03, 0.0, 1.0) * clamp((cs - 0.015) / 0.03, 0.0, 1.0);
+  float dh = abs(atan(p.z, p.y) - atan(s.z, s.y));
+  if (dh > 3.14159265) dh = 6.28318531 - dh;
+  return d + 0.1 * w * dh / 3.14159265;
+}
+
 vec3 paletteBlend(vec3 lab) {
   float d1 = 1e9, d2 = 1e9;
   int i1 = 0, i2 = 0;
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < 16; i++) {
     if (i >= u_count) break;
-    float d = distance(lab, u_palette[i]);
+    float d = paletteDistance(lab, u_palette[i]);
     if (d < d1) { d2 = d1; i2 = i1; d1 = d; i1 = i; }
     else if (d < d2) { d2 = d; i2 = i; }
   }
@@ -50,6 +64,7 @@ void main() {
   if (u_mode == 0 || u_mode == 1) {
     styl = paletteBlend(lab);
     styl.x = mix(styl.x, lab.x, 0.15); // keep a little modelling inside flat areas
+    styl = mix(lab, styl, u_strength);
   } else if (u_mode == 2) {
     styl = vec3(softQuantize(lab.x, u_levels), lab.yz * 1.15);
   } else {

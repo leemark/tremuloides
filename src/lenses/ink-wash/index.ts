@@ -15,10 +15,29 @@ import FLOW from './shaders/flow.frag.glsl?raw';
 import COMPOSITE from './shaders/composite.frag.glsl?raw';
 import COPY from './shaders/copy.frag.glsl?raw';
 
-/** Autumn San Juans palette (PRD §14 M2) plus Dry Grass #A68B5B, added after field testing so meadows don't speckle iron-red. */
-export const SAN_JUAN_HEX = ['#e9b825', '#d96a27', '#a4412e', '#2e4a3b', '#7e8f6a', '#4e86c8', '#8b8781', '#f3f2ec', '#1a1c21', '#a68b5b'] as const;
+/**
+ * Autumn San Juans palette (PRD §14 M2) plus Dry Grass #A68B5B (v0.5.1), and Umber, Ochre and
+ * Pale Sky (v0.11.0) so backlit brown leaves, gravel, mid-tone gold and hazy sky have a home.
+ */
+export const SAN_JUAN_HEX = [
+  '#e9b825', // aspen gold
+  '#d96a27', // orange
+  '#a4412e', // iron red
+  '#2e4a3b', // spruce
+  '#7e8f6a', // sage
+  '#4e86c8', // sky blue
+  '#8b8781', // granite grey
+  '#f3f2ec', // snow / paper
+  '#1a1c21', // ink
+  '#a68b5b', // dry grass
+  '#5b4434', // umber
+  '#c08a2e', // ochre
+  '#b4d2ec', // pale sky
+] as const;
 const SAN_JUAN = hexPalette(SAN_JUAN_HEX);
 const MODES: Record<string, number> = { auto: 0, sanjuan: 1, gouache: 2, mono: 3 };
+/** Palette slots in the composite shader (u_palette[16]). */
+const PALETTE_MAX = 16;
 const PALETTE_SAMPLE_EDGE = 128;
 const PALETTE_REFRESH_MS = 1000;
 
@@ -36,7 +55,7 @@ export const inkWashLens: Lens = {
   id: 'ink-wash',
   name: 'Ink & Wash',
   tagline: 'Painterly brushwork with inked edges',
-  version: 2,
+  version: 3,
   kind: 'realtime',
   seeded: false,
   params: [
@@ -55,6 +74,7 @@ export const inkWashLens: Lens = {
       default: 'gouache',
     },
     { id: 'colors', label: 'Colors', type: 'range', min: 3, max: 12, step: 1, default: 7, help: 'For Auto and Gouache palettes' },
+    { id: 'paletteStrength', label: 'Palette strength', type: 'range', min: 0, max: 1, step: 0.05, default: 0.8, help: 'Auto and San Juan: lower keeps more of the photo’s own colors' },
     { id: 'lineWeight', label: 'Line weight', type: 'range', min: 0.5, max: 4, step: 0.1, default: 1.3 },
     { id: 'lineAmount', label: 'Line amount', type: 'range', min: 0, max: 1, step: 0.05, default: 0.6 },
     {
@@ -195,14 +215,15 @@ export const inkWashLens: Lens = {
         textures: { u_paint: paint, u_ink: ink },
         uniforms: {
           u_blendK: mode === 0 ? 55 : 40,
+          u_strength: Number(req.params.paletteStrength ?? 0.8),
           u_levels: Number(req.params.colors),
           u_inkColor: hexToRgb01(String(req.params.ink)),
           u_paper: req.params.paper === true ? 1 : 0,
           u_refScale: plan.scale,
           u_outSize: [W, H],
         },
-        ints: { u_mode: mode, u_count: Math.min(12, palette.length) },
-        vec3Arrays: { u_palette: paletteUniform(palette) },
+        ints: { u_mode: mode, u_count: Math.min(PALETTE_MAX, palette.length) },
+        vec3Arrays: { u_palette: paletteUniform(palette, PALETTE_MAX) },
       });
     }
 

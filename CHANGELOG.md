@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.11.0 (2026-10-05)
+- Ink & Wash San Juan palette keeps colors true: brown leaves and gravel stay brown instead of turning green, gold canopies stay gold instead of red, and hazy sky stays sky
+- New swatches: Umber, Ochre and Pale Sky
+- New Palette strength slider (Auto and San Juan): slide down to keep more of the photo's own colors
+
 ## v0.10.0 (2026-10-04)
 - Video clips: for live lenses (Ink & Wash, Stained Glass, Posterize, Topo and more), switch to Video above the shutter and record 5, 10 or 15 seconds with the effect applied
 - Swipe to another lens mid-clip for an instant transition
