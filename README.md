@@ -19,6 +19,7 @@ Built for field use. Once installed, it works with no connection at all. When yo
 | Ridgeline Score | Traces the skyline and plays it as a melody (Play, WAV, MIDI on saved photos) |
 | Flow Painter | Brush strokes that follow the shapes in the scene, painted coarse to fine |
 | Topo | Light as elevation: contour map with index lines, hillshade and plotter-ready SVG export |
+| Risograph | Two or three spot inks, halftone or grain, slightly off-register |
 | Posterize | Flat bands of lightness, colors kept |
 
 More are planned in [PRD.md](PRD.md) §14: Flow Painter and Topo.

@@ -2,6 +2,12 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.21.0: Risograph
+1. Pick **Risograph**. The scene appears as pink, blue and yellow halftone dots on cream paper, with the inks slightly off-register.
+2. Try each **Inks** set (Pink + Teal, Orange + Blue, Red + Black…) and **Screen: Grain**.
+3. Raise **Misregistration**, take a photo, then tap **New seed** on it: the layers shift differently.
+4. Zoom into a saved photo; you should see overlapping dot screens at different angles.
+
 ## v0.20.0: Papercut
 1. Pick **Papercut** and point at layered ridges or a treeline against sky. You should see flat paper sheets with soft shadows below and right of the nearer ones.
 2. Try **Paper**: White (a white shadow box) and Kraft.

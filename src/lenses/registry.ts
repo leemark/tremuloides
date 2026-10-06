@@ -9,10 +9,11 @@ import { flowPainterLens } from './flow-painter';
 import { longExposureLens } from './long-exposure';
 import { aerochromeLens } from './aerochrome';
 import { papercutLens } from './papercut';
+import { risographLens } from './risograph';
 import type { Lens } from './types';
 
 /** All lenses, in picker order. Add new lenses here (one line each). */
-export const LENSES: readonly Lens[] = [originalLens, inkWashLens, quakeLens, longExposureLens, stainedGlassLens, flowPainterLens, aerochromeLens, papercutLens, ridgelineLens, topoLens, posterizeLens];
+export const LENSES: readonly Lens[] = [originalLens, inkWashLens, quakeLens, longExposureLens, stainedGlassLens, flowPainterLens, aerochromeLens, papercutLens, ridgelineLens, topoLens, risographLens, posterizeLens];
 
 export const DEFAULT_LENS_ID = 'ink-wash';
 

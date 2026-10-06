@@ -84,6 +84,8 @@ export interface DrawOptions {
   ints?: Record<string, number>;
   /** vec3 arrays, e.g. palettes: flat [r0, g0, b0, r1, …]. */
   vec3Arrays?: Record<string, Float32Array>;
+  /** vec2 arrays: flat [x0, y0, x1, …]. */
+  vec2Arrays?: Record<string, Float32Array>;
   /** 2D-array textures (e.g. frame history), bound after `textures`. */
   arrayTextures?: Record<string, WebGLTexture>;
   /** Draw into a sub-rectangle [x, y, w, h] (pixels, GL origin) instead of the whole target. */
@@ -246,6 +248,10 @@ export class GLKit {
     for (const [name, value] of Object.entries(opts.vec3Arrays ?? {})) {
       const loc = program.loc(name) ?? program.loc(`${name}[0]`);
       if (loc !== null) gl.uniform3fv(loc, value);
+    }
+    for (const [name, value] of Object.entries(opts.vec2Arrays ?? {})) {
+      const loc = program.loc(name) ?? program.loc(`${name}[0]`);
+      if (loc !== null) gl.uniform2fv(loc, value);
     }
   }
 
