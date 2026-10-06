@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.19.0 (2026-10-05)
+- New Aerochrome lens: the infrared film look, where leaves turn crimson and magenta and skies go deep, with a soft infrared glow
+- Films: Aerochrome, Hot pink, and Mono IR (white glowing trees under a dark sky)
+- Works live, for photos and video clips
+
 ## v0.18.0 (2026-10-05)
 - New Long Exposure lens: tap the shutter and hold still for 1–10 seconds. Streams turn silky, clouds streak and aspens blur in the wind.
 - Three modes: Smooth, Light trails (keeps the brightest, for car lights or stars) and Ghost (soft trails behind a sharp moment)
