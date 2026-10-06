@@ -8,7 +8,7 @@ import { downloadBlob, shareFiles } from '../share';
 import { extFor } from '../../storage/album';
 import { withExif } from '../export';
 import { clock, isVideoType } from '../video';
-import { processAndSave } from '../capture';
+import { processAndSave, saveClip } from '../capture';
 import { randomSeed } from '../../util/prng';
 import type { Capture } from '../../storage/types';
 import { errorMessage, logEvent } from '../../diagnostics/log';
@@ -205,7 +205,7 @@ export function createDetail(app: App, id: string): Screen {
       ),
     ];
     if (known && lens.actions?.length) {
-      const icons = { play: ICONS.play, audio: ICONS.audio, midi: ICONS.midi, svg: ICONS.svgfile };
+      const icons = { play: ICONS.play, audio: ICONS.audio, midi: ICONS.midi, svg: ICONS.svgfile, film: ICONS.film };
       lens.actions.forEach((la, ai) => {
         const btn = h('button', { class: 'action lens-action', html: `${icons[la.icon]}<span>${la.label}</span>` });
         btn.addEventListener('click', () => {
@@ -231,6 +231,21 @@ export function createDetail(app: App, id: string): Screen {
                   if (span) span.textContent = label;
                 },
                 onCleanup: (fn) => cleanups.push(fn),
+                saveVideo: async (clip, thumb) => {
+                  const saved = await saveClip(s, {
+                    ...clip,
+                    thumb,
+                    lens,
+                    params: c.params,
+                    seed: c.seed,
+                    createdAt: new Date().toISOString(),
+                    parentId: c.id,
+                    ...(c.geo ? { geo: c.geo } : {}),
+                  });
+                  void s.album.sync();
+                  return saved.id;
+                },
+                open: (id) => app.navigate({ name: 'detail', id }),
               });
             } catch (e) {
               logEvent('error', 'lens-action', `${la.id} failed`, e);

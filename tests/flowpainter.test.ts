@@ -60,3 +60,22 @@ describe('flow painter plan', () => {
     expect(b.map((y) => y.layer)).toEqual([...b.map((y) => y.layer)].sort());
   });
 });
+
+describe('timelapse pacing', () => {
+  it('spreads all strokes over the stroke phase', async () => {
+    const { timelapseBatch, totalStrokes } = await import('../src/lenses/flow-painter/plan');
+    const l = planLayers(1080, 1440, DEF);
+    const b = timelapseBatch(l, 8, 20);
+    expect(Math.ceil(totalStrokes(l) / b)).toBeLessThanOrEqual(160);
+    expect(batches(l, b).length).toBeGreaterThanOrEqual(150);
+  });
+
+  it('sizes videos to a 1440 px long edge with even dimensions', async () => {
+    const { animationSize, frameCount } = await import('../src/app/animate');
+    expect(animationSize(3072, 4080)).toEqual([1084, 1440]);
+    expect(animationSize(800, 600)).toEqual([800, 600]);
+    const [w, h] = animationSize(1001, 777);
+    expect(w % 2 + h % 2).toBe(0);
+    expect(frameCount(2.5, 20)).toBe(50);
+  });
+});

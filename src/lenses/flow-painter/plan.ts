@@ -96,3 +96,12 @@ export function batches(layers: LayerPlan[], size = BATCH): Batch[] {
   for (const l of layers) for (let f = 0; f < l.count; f += size) out.push({ layer: l.index, first: f, count: Math.min(size, l.count - f) });
   return out;
 }
+
+export function totalStrokes(layers: LayerPlan[]): number {
+  return layers.reduce((n, l) => n + l.count, 0);
+}
+
+/** Timelapse pacing: the stroke phase lasts `seconds` at `fps`, so each frame adds this many strokes. */
+export function timelapseBatch(layers: LayerPlan[], seconds: number, fps: number): number {
+  return Math.max(1, Math.ceil(totalStrokes(layers) / Math.max(1, Math.round(seconds * fps))));
+}

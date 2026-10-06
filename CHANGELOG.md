@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.12.0 (2026-10-05)
+- Flow Painter Timelapse: on a Flow Painter photo, tap Timelapse to record a video of the painting being made: the photo, the underpainting, then the brush strokes from big to fine
+- You watch it paint live; the video is saved to your gallery and phone album
+
 ## v0.11.0 (2026-10-05)
 - Ink & Wash San Juan palette keeps colors true: brown leaves and gravel stay brown instead of turning green, gold canopies stay gold instead of red, and hazy sky stays sky
 - New swatches: Umber, Ochre and Pale Sky
