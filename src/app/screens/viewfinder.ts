@@ -10,6 +10,7 @@ import { currentLensState, currentOverlay, processAndSave, saveCaptureResult, sa
 import { makeThumb } from '../pipeline';
 import { ClipRecorder, clock, nextDuration, videoSupported } from '../video';
 import { formatEv, formatZoom, hasControls, pinchZoom, snap, viewToFrame, type ControlCaps } from '../../camera/controls';
+import { pickPhotos } from '../import-ui';
 import { overlayControls, paramControls, presetBar } from '../params-ui';
 import { getPosition } from '../geo';
 import { randomSeed } from '../../util/prng';
@@ -100,17 +101,11 @@ export function createViewfinder(app: App): Screen {
 
   const thumb = h('button', { class: 'thumb-btn', 'aria-label': 'Gallery', onclick: () => app.navigate({ name: 'gallery' }) });
   const shutter = h('button', { class: 'shutter', 'aria-label': 'Take photo', onclick: () => void capture() }, h('span', { class: 'shutter-inner' }));
-  const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true });
-  fileInput.addEventListener('change', () => {
-    const file = fileInput.files?.[0];
-    fileInput.value = '';
-    if (file) app.navigate({ name: 'editor', input: { blob: file, source: 'import', lensId: lens.id, params } });
-  });
   const side = h(
     'div',
     { class: 'side-actions' },
     iconButton(ICONS.lenses, 'Choose lens', () => openLensPicker()),
-    iconButton(ICONS.import, 'Import a photo', () => fileInput.click()),
+    iconButton(ICONS.import, 'Import photos', () => pickPhotos(app, { lensId: lens.id, params })),
   );
   const saving = h('div', { class: 'saving', hidden: true, role: 'status' });
   const recordingEl = h('div', { class: 'rec-indicator', hidden: true, role: 'status' });
@@ -125,7 +120,7 @@ export function createViewfinder(app: App): Screen {
     },
   });
   const modeBar = h('div', { class: 'mode-bar', hidden: true }, h('div', { class: 'mode-seg', role: 'radiogroup', 'aria-label': 'Capture mode' }, photoBtn, videoBtn), durBtn);
-  const bottombar = h('footer', { class: 'bottombar' }, thumb, shutter, side, fileInput);
+  const bottombar = h('footer', { class: 'bottombar' }, thumb, shutter, side);
 
   const el = h('div', { class: 'screen viewfinder' }, stage, topbar, evBar, zoomChip, modeBar, bottombar, saving, recordingEl);
 

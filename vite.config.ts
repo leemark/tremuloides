@@ -83,6 +83,13 @@ export default defineConfig({
           { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: 'icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         ],
+        // Android: "Share → Tremuloides" from Google Photos / Files (handled in public/share-target.js).
+        share_target: {
+          action: `${base}share-target`,
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: { files: [{ name: 'photos', accept: ['image/*', '.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'] }] },
+        },
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,json}'],
@@ -92,6 +99,7 @@ export default defineConfig({
         // Bust-parameter version checks (version.json?t=…) must go to the network, not the precache.
         ignoreURLParametersMatching: [/^utm_/, /^fbclid$/],
         maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+        importScripts: ['share-target.js'],
       },
       devOptions: { enabled: false },
     }),

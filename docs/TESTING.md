@@ -2,6 +2,15 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.22.0: Import photos
+1. Gallery → the **Import** icon (top) → pick 5 photos from your trip. "Importing 3 of 5…" shows, then they appear under their original days, already selected.
+2. Tap **Apply lens**, pick a lens and Render. New versions appear alongside.
+3. Open an imported photo: Location shows if the photo had GPS. Re-edit works.
+4. In the camera, the picture icon → pick **one** photo. It opens straight in the editor.
+5. Android: in Google Photos, select 2 photos → Share → **Tremuloides**. The app opens and imports them. (The app must be installed to the home screen.)
+6. If your phone saves HEIC: import one and check the message is clear.
+7. Plain imports are not copied to the phone album (they're already on the phone); their lens versions are.
+
 ## v0.21.0: Risograph
 1. Pick **Risograph**. The scene appears as pink, blue and yellow halftone dots on cream paper, with the inks slightly off-register.
 2. Try each **Inks** set (Pink + Teal, Orange + Blue, Red + Black…) and **Screen: Grain**.

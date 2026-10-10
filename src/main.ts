@@ -4,6 +4,8 @@ import { createServices } from './app/services';
 import { showBanner, toast } from './app/ui';
 import { installGlobalErrorHandlers, logEvent, setLogSink } from './diagnostics/log';
 import { APP_VERSION, VERSION_LABEL, WHATS_NEW } from './version';
+import { takeSharedFiles } from './app/share-inbox';
+import { handleFiles } from './app/import-ui';
 import { formatVersion } from './util/format';
 
 installGlobalErrorHandlers();
@@ -84,4 +86,16 @@ services.queue.onChange((pending) => {
 
 // ---------- Start ----------
 const root = document.getElementById('app');
-if (root) new App(root, services).start();
+if (root) {
+  const app = new App(root, services);
+  app.start();
+  // Photos shared to the app from Android's share sheet (see public/share-target.js).
+  const shared = new URLSearchParams(location.search).get('shared');
+  if (shared !== null) {
+    history.replaceState(history.state, '', location.pathname);
+    void takeSharedFiles().then((files) => {
+      if (files.length) void handleFiles(app, files);
+      else if (shared === 'error') toast('Couldn’t receive the shared photo');
+    });
+  }
+}

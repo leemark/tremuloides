@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.22.0 (2026-10-10)
+- Import many photos at once from your phone: Gallery → Import (or the picture icon in the camera). They keep their original date and location.
+- After importing several, they're already selected: tap Apply lens to run any lens on all of them
+- Android: share photos to Tremuloides straight from Google Photos or Files
+- Clear message for HEIC photos the browser can't open
+
 ## v0.21.0 (2026-10-06)
 - New Risograph lens: your photo printed in two or three spot inks (fluorescent pink, blue, yellow and more) with halftone dots, grain and slightly off-register layers
 - Five ink sets, dots or grain, dot size and misregistration; New seed re-registers the inks

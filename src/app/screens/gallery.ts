@@ -1,6 +1,7 @@
 import type { App, Screen } from '../app';
 import { h, ICONS, iconButton, openSheet, toast, type SheetHandle } from '../ui';
 import { batch, planBatch } from '../batch';
+import { pickPhotos } from '../import-ui';
 import { STILL_LENSES } from '../../lenses/registry';
 import { currentLensState, lensStateFor } from '../capture';
 import { paramSummary } from '../params-ui';
@@ -12,7 +13,7 @@ import { clock, isVideoType } from '../video';
 import type { Capture } from '../../storage/types';
 import { logEvent } from '../../diagnostics/log';
 
-export function createGallery(app: App): Screen {
+export function createGallery(app: App, preselect?: string[]): Screen {
   const s = app.s;
   const urls: string[] = [];
   let captures: Capture[] = [];
@@ -20,9 +21,16 @@ export function createGallery(app: App): Screen {
   const selected = new Set<string>();
 
   const grid = h('div', { class: 'gallery-grid' });
-  const empty = h('div', { class: 'empty-state', hidden: true }, h('p', { text: 'No photos yet.' }), h('p', { class: 'muted', text: 'Captures and imports appear here.' }));
+  const importOpts = { onImported: (ids: string[]) => void load().then(() => selectIds(ids)) };
+  const empty = h(
+    'div',
+    { class: 'empty-state', hidden: true },
+    h('p', { text: 'No photos yet.' }),
+    h('p', { class: 'muted', text: 'Take one with the camera, or bring in photos already on your phone.' }),
+    h('button', { class: 'btn btn-primary', html: `${ICONS.import}<span>Import photos</span>`, onclick: () => pickPhotos(app, importOpts) }),
+  );
   const selectBtn = iconButton(ICONS.select, 'Select photos', () => toggleSelect());
-  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: 'Gallery' }), h('button', { class: 'btn btn-small fl-open', html: `${ICONS.log}<span>Field Log</span>`, onclick: () => app.navigate({ name: 'fieldlog' }) }), selectBtn);
+  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: 'Gallery' }), h('button', { class: 'btn btn-small fl-open', html: `${ICONS.log}<span>Field Log</span>`, onclick: () => app.navigate({ name: 'fieldlog' }) }), iconButton(ICONS.import, 'Import photos', () => pickPhotos(app, importOpts)), selectBtn);
   const shareSelected = h('button', { class: 'btn btn-primary', text: 'Share', onclick: () => void shareSelection() });
   const applySelected = h('button', { class: 'btn', text: 'Apply lens', onclick: () => openApply() });
   const selectBar = h(
@@ -114,6 +122,15 @@ export function createGallery(app: App): Screen {
     updateShareLabel();
   }
 
+  /** Enters select mode with these photos picked (after a multi-photo import). */
+  function selectIds(ids: string[]) {
+    toggleSelect(true);
+    for (const id of ids) selected.add(id);
+    for (const t of grid.querySelectorAll<HTMLElement>('.tile')) if (t.dataset.id && selected.has(t.dataset.id)) t.classList.add('picked');
+    updateShareLabel();
+    grid.querySelector('.tile.picked')?.scrollIntoView({ block: 'center' });
+  }
+
   function updateShareLabel() {
     shareSelected.textContent = selected.size ? `Share ${selected.size}` : 'Share';
     shareSelected.disabled = selected.size === 0;
@@ -154,7 +171,7 @@ export function createGallery(app: App): Screen {
         grid.append(h('h2', { class: 'day-heading', text: formatDayHeading(day) }), section);
       }
       const clip = isVideoType(c.outputType);
-      const tile = h('button', { class: `tile${clip ? ' tile-video' : ''}`, 'aria-label': `${clip ? 'Video' : 'Photo'} from ${new Date(c.createdAt).toLocaleString()}` });
+      const tile = h('button', { class: `tile${clip ? ' tile-video' : ''}`, 'data-id': c.id, 'aria-label': `${clip ? 'Video' : 'Photo'} from ${new Date(c.createdAt).toLocaleString()}` });
       if (clip) tile.append(h('span', { class: 'tile-badge', text: c.durationMs ? `▶ ${clock(Math.round(c.durationMs / 1000))}` : '▶' }));
       tile.addEventListener('click', () => {
         if (selecting) {
@@ -182,7 +199,9 @@ export function createGallery(app: App): Screen {
   return {
     el,
     mount() {
-      void load();
+      void load().then(() => {
+        if (preselect?.length) selectIds(preselect);
+      });
       renderBatch();
       offBatchRef = batch.onChange(() => renderBatch());
       // Photos still rendering when the gallery opened appear once they're saved.
