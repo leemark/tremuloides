@@ -17,11 +17,13 @@ export interface EditorInput {
   params?: Params;
   seed?: number;
   overlay?: { kind: string; strength: number };
+  /** The picked file looks like HEIC (for a clearer error if the browser can't decode it). */
+  heic?: boolean;
 }
 
 export type Route =
   | { name: 'viewfinder' }
-  | { name: 'gallery' }
+  | { name: 'gallery'; select?: string[] }
   | { name: 'detail'; id: string }
   | { name: 'editor'; input: EditorInput }
   | { name: 'settings' }
@@ -98,7 +100,7 @@ export class App {
       case 'viewfinder':
         return createViewfinder(this);
       case 'gallery':
-        return createGallery(this);
+        return createGallery(this, route.select);
       case 'detail':
         return createDetail(this, route.id);
       case 'editor':

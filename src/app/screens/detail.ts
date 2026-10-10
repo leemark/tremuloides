@@ -167,7 +167,7 @@ export function createDetail(app: App, id: string): Screen {
       action(ICONS.edit, 'Re-edit', async () => {
         const blob = (await s.store.blob(c.originalKey)) ?? (await s.store.blob(c.outputKey));
         if (!blob) return;
-        if (!c.originalKey) toast('No original kept. Editing the rendered image.');
+        if (!c.originalKey && c.lensId !== 'original') toast('No original kept. Editing the rendered image.');
         app.navigate({
           name: 'editor',
           input: { blob, source: 'derived', parent: c, lensId: c.lensId, params: c.params, seed: c.seed, ...(c.overlay ? { overlay: c.overlay } : {}) },
