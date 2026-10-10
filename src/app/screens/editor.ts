@@ -8,6 +8,7 @@ import { overlayControls, paramControls, presetBar } from '../params-ui';
 import { finalRenderSize } from '../../gl/fit';
 import { randomSeed } from '../../util/prng';
 import { logEvent, errorMessage } from '../../diagnostics/log';
+import { resizeTo } from '../../util/canvas';
 import type { Lens, Params } from '../../lenses/types';
 
 /** Applies a lens to a still image (imports and re-edits) and saves a new capture. */
@@ -135,7 +136,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
       const full = await createImageBitmap(input.blob, { imageOrientation: 'from-image' });
       const long = Math.min(renderer.maxTextureSize, Math.round(Math.max(innerWidth, innerHeight) * Math.min(devicePixelRatio || 1, 2)), 2048);
       const [w, hgt] = finalRenderSize(full.width, full.height, long);
-      preview = w === full.width ? full : await createImageBitmap(full, { resizeWidth: w, resizeHeight: hgt, resizeQuality: 'high' });
+      preview = w === full.width ? full : await resizeTo(full, w, hgt);
       if (preview !== full) full.close();
       if (!alive) return;
       renderer.setInput(preview, preview.width, preview.height);

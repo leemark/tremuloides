@@ -7,6 +7,8 @@ import { drawPoster, POSTER_SIZE, posterItems, type PosterLayout } from '../../f
 import { randomSeed } from '../../util/prng';
 import { shareFiles } from '../share';
 import { logEvent, errorMessage } from '../../diagnostics/log';
+import { canvas2d } from '../../util/canvas';
+import { canvasToBlob } from '../pipeline';
 import type { Capture } from '../../storage/types';
 
 type View = 'timeline' | 'elevation' | 'constellation';
@@ -338,11 +340,9 @@ export function createFieldLog(app: App): Screen {
       const W = Math.round(POSTER_SIZE.width * scale);
       const H = Math.round(POSTER_SIZE.height * scale);
       try {
-        const c = new OffscreenCanvas(W, H);
-        const ctx = c.getContext('2d');
-        if (!ctx) throw new Error('2D canvas unavailable');
-        drawPoster(ctx, W, H, items, layout, seed, text);
-        return await c.convertToBlob({ type: 'image/png' });
+        const { canvas: c, ctx } = canvas2d(W, H);
+        drawPoster(ctx as CanvasRenderingContext2D, W, H, items, layout, seed, text);
+        return await canvasToBlob(c, 'image/png');
       } catch (e) {
         logEvent('warn', 'fieldlog', `Poster at ${W}×${H} failed`, e);
       }

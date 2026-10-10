@@ -407,6 +407,8 @@ export function createViewfinder(app: App): Screen {
   stage.addEventListener('pointerup', endPointer);
   stage.addEventListener('pointercancel', endPointer);
   stage.addEventListener('contextmenu', (e) => e.preventDefault());
+  // Safari: its own pinch gesture would zoom the page instead of the camera.
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) stage.addEventListener(ev, (e) => e.preventDefault());
 
   // ---------- Source + render loop ----------
   async function startSource(): Promise<void> {

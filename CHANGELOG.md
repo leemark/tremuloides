@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.24.0 (2026-10-10)
+- iPhone support: image resizing, canvases and exports now work in Safari, Ridgeline plays even with the silent switch on, and pinch-zoom and long-press behave
+- On iPhone, Settings explains how to add Tremuloides to the Home Screen so Safari keeps your photos
+- Diagnostics now lists your phone's browser and which features it supports
+
 ## v0.23.0 (2026-10-10)
 - Tap the lens name at the top to switch lenses. The list shows which are live, camera-only, or render after capture.
 - Lens settings and presets moved to the ⚙ button at the bottom right; App settings is one tap from there

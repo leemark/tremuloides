@@ -4,7 +4,19 @@ import { APP_VERSION, BUILD_DATE, BUILD_SHA } from '../../version';
 import { formatBytes } from '../../util/format';
 import { buildReport, storageInfo } from '../../diagnostics/report';
 import type { Settings } from '../../storage/settings';
+import { platform } from '../../util/platform';
 import type { LogEntry } from '../../diagnostics/log';
+
+/** iPhone: Safari can clear a website's storage after 7 days unused; installed home-screen apps are exempt. */
+function iosNote(): HTMLElement | null {
+  const p = platform();
+  if (!p.ios || p.standalone) return null;
+  return h(
+    'p',
+    { class: 'status-line warn' },
+    'On iPhone, add Tremuloides to your Home Screen (Share → Add to Home Screen). Safari may clear photos kept by websites that go unused for a week; home-screen apps keep them, and work offline.',
+  );
+}
 
 export function createSettings(app: App): Screen {
   const s = app.s;
@@ -71,6 +83,7 @@ export function createSettings(app: App): Screen {
     'About',
     h('p', { class: 'version-line' }, h('strong', { text: `Tremuloides v${APP_VERSION}` }), h('span', { class: 'muted', text: ` (${BUILD_SHA}) · built ${new Date(BUILD_DATE).toLocaleString()}` })),
     offlineLine,
+    iosNote(),
     h('div', { class: 'row-actions' }, updateBtn),
     updateResult,
   );
@@ -96,8 +109,10 @@ export function createSettings(app: App): Screen {
     albumActions.replaceChildren();
     if (st.status === 'unsupported') {
       albumStatus.className = 'status-line warn';
-      albumStatus.textContent = 'Not supported in this browser (needs Chrome 132+ on Android).';
-      albumHint.textContent = 'You can still Share or Save photos one at a time.';
+      albumStatus.textContent = platform().ios ? 'Not available on iPhone.' : 'Not supported in this browser (needs Chrome 132+ on Android).';
+      albumHint.textContent = platform().ios
+        ? 'Use Share on a photo, then Save Image to put it in your Photos library.'
+        : 'You can still Share or Save photos one at a time.';
       return;
     }
     if (st.status === 'off') {

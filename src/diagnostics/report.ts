@@ -2,6 +2,7 @@ import type { Services } from '../app/services';
 import { imageCaptureSupported } from '../camera/camera';
 import { APP_VERSION, BUILD_DATE, BUILD_SHA } from '../version';
 import { pickVideoType, videoSupported } from '../app/video';
+import { capabilities, platform } from '../util/platform';
 import { SCHEMA_VERSION } from '../storage/db';
 
 export interface StorageInfo {
@@ -38,6 +39,8 @@ export async function buildReport(s: Services): Promise<Record<string, unknown>>
     camera: s.diag.camera,
     cameraControls: s.diag.cameraControls ?? null,
     imageCaptureSupported: imageCaptureSupported(),
+    platform: { ...platform(), userAgent: navigator.userAgent },
+    capabilities: capabilities(),
     preview: {
       lens: s.diag.lensId,
       size: s.renderer?.lastPreviewSize,
