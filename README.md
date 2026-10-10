@@ -29,8 +29,8 @@ More are planned in [PRD.md](PRD.md) §14: Flow Painter and Topo.
 - **Video** (live lenses such as Ink & Wash, Stained Glass, Posterize): switch to *Video* above the shutter, tap *5 s / 10 s / 15 s* to pick a length, and tap the red shutter. The clip records exactly what the viewfinder shows (MP4 where supported, otherwise WebM). You can swipe to another lens mid-clip. Sound is optional (Settings).
 - **Pinch** to zoom, **tap** to focus and meter, then slide the ☀ bar for exposure (where the phone's camera allows).
 - **Swipe** sideways on the viewfinder to change lens. **Press and hold** to see the unprocessed original.
-- **Tap the lens name** to adjust its settings. Settings are remembered per lens. **Presets** at the top give one-tap looks; **＋ Save** keeps your own. **Overlay** adds ink lines or contours over any lens.
-- **Import** applies a lens to a photo that's already on your phone.
+- **Tap the lens name** to switch lenses. **⚙** (bottom right) opens this lens's settings, with App settings one tap away. Settings are remembered per lens. **Presets** at the top give one-tap looks; **＋ Save** keeps your own. **Overlay** adds ink lines or contours over any lens.
+- **Import** (Gallery or the picture icon in the camera) brings in photos already on your phone, keeping their date and location. Pick one to open it in the editor, or many to add them to the gallery selected, ready for **Apply lens**. On Android you can also **Share → Tremuloides** from Google Photos.
 - In the **Gallery** you can share, save, re-edit (originals are kept), or delete. **Compare** makes a before/after reveal video or a side-by-side image. **Select → Apply lens** re-renders many photos with one lens.
 - **Phone album** (Settings): choose a folder such as Pictures › Tremuloides once, and every photo (and, optionally, its original) is also saved there as a normal file. Uses the File System Access API (Chrome 132+ on Android).
 - **Field Log** (Gallery → chart icon) is a color diary of the trip: palette stripes, an elevation chart, a map, and an exportable chromatograph poster.

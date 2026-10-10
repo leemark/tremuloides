@@ -10,6 +10,7 @@ import { currentLensState, currentOverlay, processAndSave, saveCaptureResult, sa
 import { makeThumb } from '../pipeline';
 import { ClipRecorder, clock, nextDuration, videoSupported } from '../video';
 import { formatEv, formatZoom, hasControls, pinchZoom, snap, viewToFrame, type ControlCaps } from '../../camera/controls';
+import { pickPhotos } from '../import-ui';
 import { overlayControls, paramControls, presetBar } from '../params-ui';
 import { getPosition } from '../geo';
 import { randomSeed } from '../../util/prng';
@@ -92,25 +93,19 @@ export function createViewfinder(app: App): Screen {
   const lensTagline = h('span', { class: 'lens-tagline' });
   const lensButton = h(
     'button',
-    { class: 'lens-button', 'aria-label': 'Lens settings', onclick: () => openParams() },
-    lensName,
+    { class: 'lens-button', 'aria-label': 'Change lens', onclick: () => openLensPicker() },
+    h('span', { class: 'lens-name-row' }, lensName, h('span', { class: 'lens-chevron', html: ICONS.chevronDown })),
     lensTagline,
   );
-  const topbar = h('header', { class: 'topbar' }, lensButton, iconButton(ICONS.gear, 'Settings', () => app.navigate({ name: 'settings' })));
+  const topbar = h('header', { class: 'topbar' }, lensButton);
 
   const thumb = h('button', { class: 'thumb-btn', 'aria-label': 'Gallery', onclick: () => app.navigate({ name: 'gallery' }) });
   const shutter = h('button', { class: 'shutter', 'aria-label': 'Take photo', onclick: () => void capture() }, h('span', { class: 'shutter-inner' }));
-  const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true });
-  fileInput.addEventListener('change', () => {
-    const file = fileInput.files?.[0];
-    fileInput.value = '';
-    if (file) app.navigate({ name: 'editor', input: { blob: file, source: 'import', lensId: lens.id, params } });
-  });
   const side = h(
     'div',
     { class: 'side-actions' },
-    iconButton(ICONS.lenses, 'Choose lens', () => openLensPicker()),
-    iconButton(ICONS.import, 'Import a photo', () => fileInput.click()),
+    iconButton(ICONS.gear, 'Lens and app settings', () => openParams()),
+    iconButton(ICONS.import, 'Import photos', () => pickPhotos(app, { lensId: lens.id, params })),
   );
   const saving = h('div', { class: 'saving', hidden: true, role: 'status' });
   const recordingEl = h('div', { class: 'rec-indicator', hidden: true, role: 'status' });
@@ -125,7 +120,7 @@ export function createViewfinder(app: App): Screen {
     },
   });
   const modeBar = h('div', { class: 'mode-bar', hidden: true }, h('div', { class: 'mode-seg', role: 'radiogroup', 'aria-label': 'Capture mode' }, photoBtn, videoBtn), durBtn);
-  const bottombar = h('footer', { class: 'bottombar' }, thumb, shutter, side, fileInput);
+  const bottombar = h('footer', { class: 'bottombar' }, thumb, shutter, side);
 
   const el = h('div', { class: 'screen viewfinder' }, stage, topbar, evBar, zoomChip, modeBar, bottombar, saving, recordingEl);
 
@@ -304,29 +299,42 @@ export function createViewfinder(app: App): Screen {
       );
     };
     build();
-    sheet = openSheet(lens.name, container, { onClose: () => (sheet = null) });
+    sheet = openSheet(lens.name, container, {
+      onClose: () => (sheet = null),
+      action: { label: 'App settings', icon: ICONS.gear, run: () => app.navigate({ name: 'settings' }) },
+    });
   }
 
   function openLensPicker() {
     sheet?.close();
     const list = h('div', { class: 'lens-list' });
+    const kindLabel = (l: Lens) => (l.kind === 'temporal' ? 'Camera only' : l.kind === 'still' ? 'Renders after capture' : 'Live');
     for (const l of LENSES) {
+      const on = l.id === lens.id;
       list.append(
         h(
           'button',
           {
-            class: `lens-item ${l.id === lens.id ? 'on' : ''}`,
+            class: `lens-item ${on ? 'on' : ''}`,
+            'aria-pressed': String(on),
             onclick: () => {
-              setLens(l);
+              if (!on) {
+                setLens(l);
+                toast(l.name, { duration: 900 });
+              }
               sheet?.close();
             },
           },
-          h('span', { class: 'lens-item-name', text: l.name }),
+          h('span', { class: 'lens-item-top' }, h('span', { class: 'lens-item-name', text: l.name }), h('span', { class: `lens-item-kind kind-${l.kind}`, text: kindLabel(l) })),
           h('span', { class: 'lens-item-tagline', text: l.tagline }),
         ),
       );
     }
-    sheet = openSheet('Lenses', list, { onClose: () => (sheet = null) });
+    sheet = openSheet('Lenses', list, {
+      onClose: () => (sheet = null),
+      action: { label: `${lens.name} settings`, icon: ICONS.gear, run: () => openParams() },
+    });
+    list.querySelector('.lens-item.on')?.scrollIntoView({ block: 'nearest' });
   }
 
   // ---------- Gestures: swipe = change lens, hold = show original ----------
@@ -789,6 +797,10 @@ export function createViewfinder(app: App): Screen {
       document.addEventListener('visibilitychange', onVisibility);
       cleanups.push(() => document.removeEventListener('visibilitychange', onVisibility));
       void refreshThumb();
+      if (!s.settings.flag('hintControlsFlip')) {
+        s.settings.setFlag('hintControlsFlip', '1');
+        window.setTimeout(() => toast('Tap the lens name to switch lenses. Settings are under ⚙ at the bottom right.', { duration: 5500 }), 1200);
+      }
       if (document.visibilityState === 'visible') void resume();
     },
     unmount() {
