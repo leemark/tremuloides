@@ -2,6 +2,12 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.23.0: Controls flip
+1. Tap the **lens name** at the top. The Lenses list opens with the current lens highlighted. Pick another.
+2. Tap **⚙** at the bottom right. This lens's presets, sliders and Overlay open. Tap **App settings** in its header to reach Settings.
+3. From the Lenses list, **"<lens> settings"** in the header jumps straight to that lens's settings.
+4. A one-time hint explains the change on first launch.
+
 ## v0.22.0: Import photos
 1. Gallery → the **Import** icon (top) → pick 5 photos from your trip. "Importing 3 of 5…" shows, then they appear under their original days, already selected.
 2. Tap **Apply lens**, pick a lens and Render. New versions appear alongside.

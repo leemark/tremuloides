@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.23.0 (2026-10-10)
+- Tap the lens name at the top to switch lenses. The list shows which are live, camera-only, or render after capture.
+- Lens settings and presets moved to the ⚙ button at the bottom right; App settings is one tap from there
+- Swiping sideways still changes lens
+
 ## v0.22.0 (2026-10-10)
 - Import many photos at once from your phone: Gallery → Import (or the picture icon in the camera). They keep their original date and location.
 - After importing several, they're already selected: tap Apply lens to run any lens on all of them
