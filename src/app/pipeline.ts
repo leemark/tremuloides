@@ -2,6 +2,7 @@ import type { Renderer } from '../gl/renderer';
 import { finalRenderSize } from '../gl/fit';
 import type { Lens, Params } from '../lenses/types';
 import type { Settings } from '../storage/settings';
+import { resizeTo } from '../util/canvas';
 import type { OverlayConfig } from '../gl/overlay';
 
 export interface RenderedImage {
@@ -23,7 +24,7 @@ export async function decodeForRender(source: Blob | ImageBitmap, maxEdge: numbe
   const bitmap = source instanceof Blob ? await createImageBitmap(source, { imageOrientation: 'from-image' }) : source;
   const [w, h] = finalRenderSize(bitmap.width, bitmap.height, maxEdge);
   if (w === bitmap.width && h === bitmap.height) return bitmap;
-  const resized = await createImageBitmap(bitmap, { resizeWidth: w, resizeHeight: h, resizeQuality: 'high' });
+  const resized = await resizeTo(bitmap, w, h);
   bitmap.close();
   return resized;
 }

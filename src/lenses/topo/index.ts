@@ -5,6 +5,7 @@ import { GRID_EDGE, STYLES, contoursToSvg, type ContourParams, type TopoStyle } 
 import { contoursAsync } from './client';
 import FIELD from './shaders/field.frag.glsl?raw';
 import BLUR from './shaders/blur.frag.glsl?raw';
+import { canvas2d, resizeTo } from '../../util/canvas';
 import TOPO from './shaders/topo.frag.glsl?raw';
 
 const PREVIEW_FIELD_EDGE = 768;
@@ -60,10 +61,8 @@ export const topoLens: Lens = {
         const w = Math.max(2, Math.round(probe.width * s));
         const h = Math.max(2, Math.round(probe.height * s));
         probe.close();
-        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image', resizeWidth: w, resizeHeight: h, resizeQuality: 'high' });
-        const canvas = new OffscreenCanvas(w, h);
-        const c2d = canvas.getContext('2d');
-        if (!c2d) throw new Error('2D canvas unavailable');
+        const bmp = await resizeTo(blob, w, h);
+        const { ctx: c2d } = canvas2d(w, h);
         c2d.drawImage(bmp, 0, 0);
         bmp.close();
         const px = c2d.getImageData(0, 0, w, h).data;

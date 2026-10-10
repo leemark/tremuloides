@@ -44,6 +44,7 @@ export const ICONS = {
   film: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>'),
   svgfile: svg('<path d="M4 18c3-8 6-8 8-4s5 4 8-4"/><path d="M4 12c3-6 6-6 8-3s5 3 8-3"/>'),
   log: svg('<path d="M3 20h18"/><path d="M5 16l4-6 4 3 6-9"/><circle cx="19" cy="4" r="1.5"/>'),
+  chevronDown: svg('<path d="M6 9l6 6 6-6"/>'),
   select: svg('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M15 17.5l2 2 4-4"/>'),
 };
 
@@ -83,13 +84,29 @@ export interface SheetHandle {
   body: HTMLElement;
 }
 
-export function openSheet(title: string, content: Node, opts: { onClose?: () => void } = {}): SheetHandle {
+export function openSheet(title: string, content: Node, opts: { onClose?: () => void; action?: { label: string; icon?: string; run: () => void } } = {}): SheetHandle {
   const body = h('div', { class: 'sheet-body' }, content);
   const panel = h(
     'div',
     { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('div', { class: 'sheet-grip' }),
-    h('div', { class: 'sheet-head' }, h('h2', { text: title }), iconButton(ICONS.close, 'Close', () => close())),
+    h(
+      'div',
+      { class: 'sheet-head' },
+      h('h2', { text: title }),
+      opts.action
+        ? h('button', {
+            class: 'btn btn-small sheet-head-action',
+            html: `${opts.action.icon ?? ''}<span>${opts.action.label}</span>`,
+            onclick: () => {
+              const run = opts.action?.run;
+              close();
+              run?.();
+            },
+          })
+        : null,
+      iconButton(ICONS.close, 'Close', () => close()),
+    ),
     body,
   );
   const backdrop = h('div', { class: 'sheet-backdrop', onclick: (e: Event) => e.target === backdrop && close() }, panel);

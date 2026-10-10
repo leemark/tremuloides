@@ -1,5 +1,6 @@
 import { huePalette } from '../color/palette';
 import { oklabToOklch, oklabToSrgb, srgbToHex, srgbToOklab, type Vec3 } from '../color/oklab';
+import { canvas2d } from '../util/canvas';
 import type { FieldLogData } from '../storage/types';
 
 /** Bump when the analysis changes; older results are recomputed by the backfill. */
@@ -60,9 +61,7 @@ export async function samplePixels(blob: Blob, edge = SAMPLE_EDGE): Promise<Uint
   const s = Math.min(1, edge / Math.max(full.width, full.height));
   const w = Math.max(1, Math.round(full.width * s));
   const h = Math.max(1, Math.round(full.height * s));
-  const canvas = new OffscreenCanvas(w, h);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('2D canvas unavailable');
+  const { ctx } = canvas2d(w, h);
   ctx.drawImage(full, 0, 0, w, h);
   full.close();
   return ctx.getImageData(0, 0, w, h).data;
