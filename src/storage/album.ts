@@ -69,7 +69,8 @@ export function albumFilenames(c: Capture, originalType?: string): { output: str
 /** Captures that should be in the album but aren't yet (oldest first). */
 export function pendingCaptures(caps: readonly Capture[], since: string | null): Capture[] {
   if (!since) return [];
-  return caps.filter((c) => !c.albumSavedAt && c.createdAt >= since).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+  // Plain imports (Original lens) are already on the phone; only renders made from them are copied.
+  return caps.filter((c) => !c.albumSavedAt && c.createdAt >= since && !(c.source === 'import' && c.lensId === 'original')).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
 }
 
 /**

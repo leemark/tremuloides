@@ -143,7 +143,9 @@ export function createEditor(app: App, input: EditorInput): Screen {
       redraw();
     } catch (e) {
       logEvent('error', 'editor', 'Could not open image', e);
-      status.textContent = 'Couldn’t open that image.';
+      status.textContent = input.heic
+        ? 'This is a HEIC photo, which this browser can’t open. Share it from your gallery as JPEG, or turn off “High efficiency pictures” in the camera settings.'
+        : 'Couldn’t open that image.';
       saveBtn.disabled = true;
     }
   }
