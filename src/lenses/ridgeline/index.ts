@@ -7,6 +7,7 @@ import { writeMidi } from './midi';
 import { encodeWav } from './wav';
 import { renderScore } from './synth';
 import DOWNSAMPLE from './shaders/downsample.frag.glsl?raw';
+import { canvas2d, resizeTo } from '../../util/canvas';
 import RIDGE from './shaders/ridge.frag.glsl?raw';
 
 const PREVIEW_REFRESH_MS = 250;
@@ -21,10 +22,8 @@ export async function scoreFromBlob(blob: Blob, c: Capture): Promise<{ ridge: Ri
   const w = RIDGE_SAMPLE_W;
   const h = Math.max(2, Math.round((w * probe.height) / probe.width));
   probe.close();
-  const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image', resizeWidth: w, resizeHeight: h, resizeQuality: 'high' });
-  const canvas = new OffscreenCanvas(w, h);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('2D canvas unavailable');
+  const bmp = await resizeTo(blob, w, h);
+  const { ctx } = canvas2d(w, h);
   ctx.drawImage(bmp, 0, 0);
   bmp.close();
   const px = ctx.getImageData(0, 0, w, h).data;
@@ -75,6 +74,9 @@ function playAction(): LensAction {
         return;
       }
       const { buffer, score } = await audioFor(ctx);
+      // iPhone: without this, the ring/silent switch mutes Web Audio (Safari 17+ Audio Session API).
+      const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+      if (session) session.type = 'playback';
       audio ??= new AudioContext();
       await audio.resume();
       src = audio.createBufferSource();

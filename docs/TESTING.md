@@ -2,6 +2,16 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.24.0: iPhone (Safari) checklist
+Needs iOS 16.4 or newer. Open the app in Safari, then Share → **Add to Home Screen**, and launch it from there.
+1. Camera starts; swipe and the lens list work; pinch zooms the camera, not the page.
+2. Take a photo with Ink & Wash. It saves and shows in the Gallery. Hold on the photo to compare: no "Save Image" popup.
+3. Gallery → Import → pick 3 photos from Photos, then Apply lens.
+4. Share a photo → Save Image: it lands in Photos.
+5. Ridgeline Score: take a photo, tap Play with the silent switch ON. You should still hear it.
+6. Record a 5 s video clip; it plays in the Gallery and shares.
+7. Settings → Copy diagnostics, and send it to Mark (capabilities show what this iPhone supports).
+
 ## v0.23.0: Controls flip
 1. Tap the **lens name** at the top. The Lenses list opens with the current lens highlighted. Pick another.
 2. Tap **⚙** at the bottom right. This lens's presets, sliders and Overlay open. Tap **App settings** in its header to reach Settings.

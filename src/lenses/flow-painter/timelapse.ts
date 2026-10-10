@@ -4,6 +4,7 @@ import { videoSupported } from '../../app/video';
 import { planLayers, timelapseBatch } from './plan';
 import { logEvent } from '../../diagnostics/log';
 import { fragment } from '../../gl/kit';
+import { resizeTo } from '../../util/canvas';
 import COPY from './shaders/copy.frag.glsl?raw';
 
 /** Seconds: the photo, the strokes going down, and the finished painting. */
@@ -37,7 +38,7 @@ export function timelapseAction(): LensAction {
         const probe = await createImageBitmap(blob, { imageOrientation: 'from-image' });
         const [w, h] = animationSize(probe.width, probe.height);
         probe.close();
-        const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image', resizeWidth: w, resizeHeight: h, resizeQuality: 'high' });
+        const bmp = await resizeTo(blob, w, h);
         anim = new GLAnimator(w, h, TIMELAPSE.fps);
         const a = anim;
         const input = a.texture(bmp);

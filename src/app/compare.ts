@@ -2,6 +2,7 @@ import { GLAnimator, animationSize } from './animate';
 import { fragment, refScale } from '../gl/kit';
 import REVEAL from '../gl/shaders/reveal.frag.glsl?raw';
 import type { ClipResult } from './video';
+import { canvas2d, resizeTo } from '../util/canvas';
 import { canvasToBlob } from './pipeline';
 
 /** Reveal timeline (seconds): before, wipe in, hold after, wipe back, short before (loops cleanly). */
@@ -29,7 +30,7 @@ export function revealPosition(s: number): number {
 
 async function decode(blob: Blob, w?: number, h?: number): Promise<ImageBitmap> {
   return w && h
-    ? createImageBitmap(blob, { imageOrientation: 'from-image', resizeWidth: w, resizeHeight: h, resizeQuality: 'high' })
+    ? resizeTo(blob, w, h)
     : createImageBitmap(blob, { imageOrientation: 'from-image' });
 }
 
@@ -82,9 +83,7 @@ export async function makeSideBySide(original: Blob, output: Blob): Promise<Blob
   const L = sideBySideLayout(probe.width, probe.height);
   probe.close();
   const [b, a] = await Promise.all([decode(original, L.panelW, L.panelH), decode(output, L.panelW, L.panelH)]);
-  const c = new OffscreenCanvas(L.width, L.height);
-  const ctx = c.getContext('2d');
-  if (!ctx) throw new Error('2D canvas unavailable');
+  const { canvas: c, ctx } = canvas2d(L.width, L.height);
   ctx.fillStyle = '#f3f2ec';
   ctx.fillRect(0, 0, L.width, L.height);
   ctx.drawImage(b, 0, 0);

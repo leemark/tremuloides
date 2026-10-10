@@ -1626,3 +1626,12 @@ select {
 .lens-item-kind.kind-realtime {
   color: #7fc9a0;
 }
+
+/* iPhone: no "Save Image / Copy" callout on long-press (hold-to-compare), no tap flash */
+.stage,
+.detail-view,
+.editor-stage,
+.tile {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}

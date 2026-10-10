@@ -36,6 +36,9 @@ More are planned in [PRD.md](PRD.md) §14: Flow Painter and Topo.
 - **Field Log** (Gallery → chart icon) is a color diary of the trip: palette stripes, an elevation chart, a map, and an exportable chromatograph poster.
 - **Settings** shows the version, offline status, the update check, storage, and Diagnostics (with *Copy diagnostics* for bug reports).
 
+## iPhone
+Works in Safari on iOS 16.4+. Add it to the Home Screen (Share → Add to Home Screen) so Safari keeps your photos and it runs offline. Not available on iPhone: the Phone album folder (use Share → Save Image) and Share → Tremuloides from other apps. Photos come from the camera stream, not the full-resolution camera; for full-resolution shots, take them with the Camera app and Import.
+
 ## Development
 ```
 npm ci
