@@ -48,6 +48,21 @@ export function importDate(exifDate: Date | undefined, lastModified: number | un
   return new Date(now);
 }
 
+/** When and where a picked photo was taken: EXIF date and GPS (JPEG only), else the file's date. */
+export async function photoMeta(file: Blob & { name?: string; lastModified?: number }): Promise<{ date: Date; geo?: GeoTag }> {
+  let exif: ReturnType<typeof readExif> = {};
+  if (/jpe?g/i.test(file.type) || /\.jpe?g$/i.test(file.name ?? '')) {
+    try {
+      exif = readExif(new Uint8Array(await file.slice(0, 256 * 1024).arrayBuffer()));
+    } catch (e) {
+      logEvent('warn', 'import', 'Could not read photo metadata', e);
+    }
+  }
+  const date = importDate(exif.date, file.lastModified);
+  if (!exif.gps) return { date };
+  return { date, geo: { lat: exif.gps.lat, lon: exif.gps.lon, altitude: exif.gps.altitude, accuracy: 0, altitudeAccuracy: null, at: date.toISOString() } };
+}
+
 /**
  * Adds photos from the phone to the gallery as unprocessed captures (the Original lens), keeping
  * their capture date and GPS from EXIF. The photo is stored once, as the output, so it can be
@@ -70,11 +85,7 @@ export async function importPhotos(s: Services, files: readonly File[], onProgre
           result.failed.push({ name: file.name, reason: decodeFailureReason(file) });
           continue;
         }
-        const exif = /jpe?g/i.test(file.type) || /\.jpe?g$/i.test(file.name) ? readExif(new Uint8Array(await file.slice(0, 256 * 1024).arrayBuffer())) : {};
-        const date = importDate(exif.date, file.lastModified);
-        const geo: GeoTag | undefined = exif.gps
-          ? { lat: exif.gps.lat, lon: exif.gps.lon, altitude: exif.gps.altitude, accuracy: 0, altitudeAccuracy: null, at: date.toISOString() }
-          : undefined;
+        const { date, geo } = await photoMeta(file);
         const thumb = await makeThumb(bitmap, bitmap.width, bitmap.height);
         const capture = await s.store.save(
           {

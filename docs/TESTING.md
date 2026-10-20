@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.25.0: Crop
+1. Camera → picture icon → pick one photo. In the editor, tap **Crop** (top right).
+2. Drag a corner in, drag inside the frame to move it, then tap **4:5**: the frame snaps to 4:5 and stays that shape as you drag.
+3. Tap **Rotate** once, then **Done**. The preview updates and the button reads **Cropped**. Tap Render & save.
+4. The saved photo has the new shape. Hold on it to compare: the original is cropped the same way.
+5. In the Gallery, the import sits under the day it was taken (not today), and Field Log shows its location if the photo had GPS.
+6. Open any older capture → Re-edit → Crop → pick **Original** lens → save: a plain cropped copy, the first one untouched.
+
 ## v0.24.0: iPhone (Safari) checklist
 Needs iOS 16.4 or newer. Open the app in Safari, then Share → **Add to Home Screen**, and launch it from there.
 1. Camera starts; swipe and the lens list work; pinch zooms the camera, not the page.
