@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.25.0 (2026-10-19)
+- Crop and rotate before applying a lens: tap **Crop** at the top of the editor. Pick Free, Original, Square, 4:5, 2:3, 3:2, 16:9 or 9:16, drag the corners, and turn the photo with Rotate.
+- To crop a photo you've already taken, open it, tap Re-edit, then Crop. Choose the Original lens for a plain crop with no effect.
+- A single imported photo now keeps its original date and location too
+
 ## v0.24.0 (2026-10-10)
 - iPhone support: image resizing, canvases and exports now work in Safari, Ridgeline plays even with the silent switch on, and pinch-zoom and long-press behave
 - On iPhone, Settings explains how to add Tremuloides to the Home Screen so Safari keeps your photos

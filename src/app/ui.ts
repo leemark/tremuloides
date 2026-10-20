@@ -44,6 +44,8 @@ export const ICONS = {
   film: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/>'),
   svgfile: svg('<path d="M4 18c3-8 6-8 8-4s5 4 8-4"/><path d="M4 12c3-6 6-6 8-3s5 3 8-3"/>'),
   log: svg('<path d="M3 20h18"/><path d="M5 16l4-6 4 3 6-9"/><circle cx="19" cy="4" r="1.5"/>'),
+  crop: svg('<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>'),
+  rotate: svg('<path d="M21 4v6h-6"/><path d="M20.5 15a9 9 0 1 1-2.1-9.4L21 10"/>'),
   chevronDown: svg('<path d="M6 9l6 6 6-6"/>'),
   select: svg('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M15 17.5l2 2 4-4"/>'),
 };

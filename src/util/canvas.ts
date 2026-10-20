@@ -5,6 +5,8 @@
  * to a DOM canvas and to drawing the resize themselves, so every path works on iPhone too.
  */
 
+import { capScale, rotatedSize, toSourceRect, type CropState } from './crop';
+
 export type Canvas2D = { canvas: OffscreenCanvas | HTMLCanvasElement; ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D };
 
 export function canvas2d(w: number, h: number): Canvas2D {
@@ -55,4 +57,43 @@ export async function resizeTo(source: Blob | ImageBitmap, w: number, h: number)
   } finally {
     if (full !== source) full.close();
   }
+}
+
+/** Safari refuses canvases above ~16.7 MP, so crops are capped there on every browser. */
+export const MAX_CANVAS_PIXELS = 16_777_216;
+
+/**
+ * Crops (and quarter-turns) a bitmap. The source is not closed. Plain crops use
+ * createImageBitmap's source rectangle; rotations and oversized crops are drawn on a canvas.
+ */
+export async function cropBitmap(source: ImageBitmap, crop: CropState, maxPixels = MAX_CANVAS_PIXELS): Promise<ImageBitmap> {
+  const r = toSourceRect(crop, source.width, source.height);
+  const scale = capScale(r.outW, r.outH, maxPixels);
+  if (crop.quarter === 0 && scale === 1) {
+    try {
+      const bmp = await createImageBitmap(source, r.sx, r.sy, r.sw, r.sh);
+      if (bmp.width === r.sw && bmp.height === r.sh) return bmp;
+      bmp.close();
+    } catch {
+      /* fall through to drawing it */
+    }
+  }
+  const tw = Math.max(1, Math.round(r.outW * scale));
+  const th = Math.max(1, Math.round(r.outH * scale));
+  const [dw, dh] = rotatedSize(tw, th, crop.quarter); // unrotated draw size
+  const { canvas, ctx } = canvas2d(tw, th);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.translate(tw / 2, th / 2);
+  ctx.rotate((crop.quarter * Math.PI) / 2);
+  ctx.drawImage(source, r.sx, r.sy, r.sw, r.sh, -dw / 2, -dh / 2, dw, dh);
+  return createImageBitmap(canvas);
+}
+
+/** Encodes a bitmap as JPEG. */
+export async function bitmapToJpeg(bitmap: ImageBitmap, quality = 0.95): Promise<Blob> {
+  const { canvas, ctx } = canvas2d(bitmap.width, bitmap.height);
+  ctx.drawImage(bitmap, 0, 0);
+  if ('convertToBlob' in canvas) return canvas.convertToBlob({ type: 'image/jpeg', quality });
+  return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Image encoding failed'))), 'image/jpeg', quality));
 }

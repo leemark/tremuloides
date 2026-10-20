@@ -8,7 +8,10 @@ import { overlayControls, paramControls, presetBar } from '../params-ui';
 import { finalRenderSize } from '../../gl/fit';
 import { randomSeed } from '../../util/prng';
 import { logEvent, errorMessage } from '../../diagnostics/log';
-import { resizeTo } from '../../util/canvas';
+import { bitmapToJpeg, cropBitmap, resizeTo } from '../../util/canvas';
+import { isNoCrop, noCrop, type CropState } from '../../util/crop';
+import { openCropper } from '../crop-ui';
+import { photoMeta } from '../import';
 import type { Lens, Params } from '../../lenses/types';
 
 /** Applies a lens to a still image (imports and re-edits) and saves a new capture. */
@@ -21,6 +24,10 @@ export function createEditor(app: App, input: EditorInput): Screen {
   let seed = input.seed ?? randomSeed();
   let overlay = input.overlay ? sanitizeOverlay(input.overlay) : currentOverlay(s);
   let preview: ImageBitmap | null = null;
+  /** Uncropped, upright, preview-sized photo shown in the crop screen. */
+  let cropSource: ImageBitmap | null = null;
+  let crop: CropState = noCrop();
+  let cropAspect = 'free';
   let comparing = false;
   let raf = 0;
   let saving = false;
@@ -50,7 +57,8 @@ export function createEditor(app: App, input: EditorInput): Screen {
   );
 
   const title = input.source === 'import' ? 'Import' : 'Re-edit';
-  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: title }));
+  const cropBtn = h('button', { class: 'btn btn-small btn-ghost crop-btn', html: `${ICONS.crop}<span>Crop</span>`, disabled: true, onclick: () => void editCrop() });
+  const header = h('header', { class: 'screen-header' }, iconButton(ICONS.back, 'Back', () => app.back()), h('h1', { text: title }), cropBtn);
   const el = h('div', { class: 'screen editor' }, header, stage, panel);
 
   function buildLensChips() {
@@ -126,6 +134,18 @@ export function createEditor(app: App, input: EditorInput): Screen {
     });
   }
 
+  /** Preview-sized bitmap of the photo with the current crop applied. */
+  async function makePreview(full: ImageBitmap): Promise<ImageBitmap> {
+    if (!renderer) throw new Error('Renderer unavailable');
+    const cropped = isNoCrop(crop) ? full : await cropBitmap(full, crop);
+    const long = Math.min(renderer.maxTextureSize, Math.round(Math.max(innerWidth, innerHeight) * Math.min(devicePixelRatio || 1, 2)), 2048);
+    const [w, hgt] = finalRenderSize(cropped.width, cropped.height, long);
+    if (w === cropped.width && hgt === cropped.height) return cropped;
+    const out = await resizeTo(cropped, w, hgt);
+    if (cropped !== full) cropped.close();
+    return out;
+  }
+
   async function loadPreview() {
     if (!renderer) {
       status.textContent = `Lenses can’t run here: ${s.rendererError ?? 'WebGL2 unavailable'}.`;
@@ -134,13 +154,14 @@ export function createEditor(app: App, input: EditorInput): Screen {
     }
     try {
       const full = await createImageBitmap(input.blob, { imageOrientation: 'from-image' });
-      const long = Math.min(renderer.maxTextureSize, Math.round(Math.max(innerWidth, innerHeight) * Math.min(devicePixelRatio || 1, 2)), 2048);
-      const [w, hgt] = finalRenderSize(full.width, full.height, long);
-      preview = w === full.width ? full : await resizeTo(full, w, hgt);
+      preview = await makePreview(full);
+      // The crop screen shows the whole photo at preview size.
+      cropSource = preview === full ? await createImageBitmap(full) : await resizeTo(full, preview.width, preview.height);
       if (preview !== full) full.close();
       if (!alive) return;
       renderer.setInput(preview, preview.width, preview.height);
       status.hidden = true;
+      cropBtn.disabled = false;
       redraw();
     } catch (e) {
       logEvent('error', 'editor', 'Could not open image', e);
@@ -151,28 +172,75 @@ export function createEditor(app: App, input: EditorInput): Screen {
     }
   }
 
+  async function editCrop() {
+    if (!cropSource || !renderer || saving) return;
+    const result = await openCropper(cropSource, crop, cropAspect);
+    if (!result || !alive) return;
+    crop = result.crop;
+    cropAspect = result.aspect;
+    cropBtn.classList.toggle('on', !isNoCrop(crop));
+    const label = cropBtn.querySelector('span');
+    if (label) label.textContent = isNoCrop(crop) ? 'Crop' : 'Cropped';
+    status.textContent = 'Cropping…';
+    status.hidden = false;
+    try {
+      const full = await createImageBitmap(input.blob, { imageOrientation: 'from-image' });
+      const next = await makePreview(full);
+      if (next !== full) full.close();
+      if (!alive) {
+        next.close();
+        return;
+      }
+      preview?.close();
+      preview = next;
+      renderer.setInput(preview, preview.width, preview.height);
+      status.hidden = true;
+      logEvent('info', 'editor', `Crop ${preview.width}×${preview.height} preview, quarter ${crop.quarter}`);
+      redraw();
+    } catch (e) {
+      logEvent('error', 'editor', 'Crop failed', e);
+      status.textContent = `Crop failed: ${errorMessage(e)}`;
+    }
+  }
+
   async function save() {
     void s.album.ensurePermission();
     if (saving || !renderer) return;
     saving = true;
     saveBtn.disabled = true;
+    cropBtn.disabled = true;
     saveBtn.textContent = 'Rendering…';
     const stopProgress = s.busy.onProgress((f) => {
       if (f !== null) saveBtn.textContent = `Painting… ${Math.round(f * 100)}%`;
     });
     try {
-      const bitmap = await createImageBitmap(input.blob, { imageOrientation: 'from-image' });
+      const full = await createImageBitmap(input.blob, { imageOrientation: 'from-image' });
+      let bitmap = full;
+      let originalBlob: Blob = input.blob;
+      if (!isNoCrop(crop)) {
+        try {
+          bitmap = await cropBitmap(full, crop);
+        } finally {
+          full.close();
+        }
+        // The kept original is the cropped photo, so Compare and later re-edits line up.
+        if (s.settings.get().keepOriginals) originalBlob = await bitmapToJpeg(bitmap, 0.95);
+      }
+      // A single imported photo keeps its own date and location, like a multi-photo import.
+      const meta = input.source === 'import' ? await photoMeta(input.blob) : null;
+      const geo = meta ? meta.geo : input.parent?.geo;
       const capture = await processAndSave(s, {
         overlay,
         bitmap,
-        originalBlob: input.blob,
+        originalBlob,
         lens,
         params: { ...params } as Params,
         seed,
         source: input.source,
         method: input.source === 'import' ? 'file' : input.parent?.captureMethod,
         ...(input.parent ? { parentId: input.parent.id } : {}),
-        ...(input.parent?.geo ? { geo: input.parent.geo } : {}),
+        ...(geo ? { geo } : {}),
+        ...(meta ? { createdAt: meta.date.toISOString() } : {}),
       });
       if (input.source === 'import') s.settings.setLensParams(lens.id, params);
       void s.album.sync();
@@ -182,6 +250,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
       logEvent('error', 'editor', 'Render failed', e);
       toast(`Render failed: ${errorMessage(e)}`);
       saveBtn.disabled = false;
+      cropBtn.disabled = false;
       saveBtn.textContent = 'Render & save';
     } finally {
       stopProgress();
@@ -226,6 +295,7 @@ export function createEditor(app: App, input: EditorInput): Screen {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', onResize);
       preview?.close();
+      cropSource?.close();
     },
   };
 }
