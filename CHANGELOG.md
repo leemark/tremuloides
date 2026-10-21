@@ -1,7 +1,7 @@
 # Changelog
 
 ## v0.26.0 (2026-10-20)
-- Flow Painter paints faces with care: smaller, shorter strokes on each face, so eyes and smiles stay readable, and big strokes no longer smear across them
+- Flow Painter paints faces with care: smaller, shorter strokes on each face, so eyes and smiles stay readable, and big strokes no longer smear across them. The finer brushwork blends into the rest, with no outline around the face
 - Needs a browser that can find faces. On Android Chrome, turn on chrome://flags → Experimental Web Platform features. Without it, Flow Painter paints as before
 
 ## v0.25.1 (2026-10-20)

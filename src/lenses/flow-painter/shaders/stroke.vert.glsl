@@ -18,15 +18,20 @@ uniform float u_prevLod;    // < 0: paint everywhere
 uniform float u_accept;     // color difference a finer stroke must add
 uniform float u_jitter;
 uniform float u_edgeStop;   // strokes stop where the color changes by more than this
-// Faces (plan.ts planFaces): ellipses painted with their own fine brush. Regular layers too coarse for a
-// face stay out of it and narrow near it, strokes from outside stop at its edge, and near faces every
-// regular layer paints (no refinement gate) so nothing is left bare between the face and the rest.
+// Faces (plan.ts planFaces): ellipses painted with their own fine brush, blended into the painting with
+// no visible edge. A face's weight is 1 inside FACE_INNER (in units of its ellipse) and falls smoothly to
+// 0 at FACE_OUTER. Across that band, face strokes thin out and grow toward the regular brushes, regular
+// strokes too coarse for the face thin in, and fine regular layers skip the refinement gate in proportion,
+// so coverage never dips. Strokes from outside stop only at the core, under the face's full coverage.
 uniform int u_faceCount;
 uniform vec2 u_faceCentre[8]; // px
 uniform vec3 u_faceShape[8];  // radius x, radius y, the face's brush width (px)
 uniform int u_face;           // ≥ 0: this draw is that face's own layer, on a grid from u_gridOrigin
 uniform vec2 u_gridOrigin;    // px
 const float FACE_KEEP_OUT = 2.0; // plan.ts FACE_KEEP_OUT
+const float FACE_INNER = 0.7;    // plan.ts FACE_INNER
+const float FACE_OUTER = 1.4;    // plan.ts FACE_REACH
+const float FACE_EDGE_GROW = 2.0; // face strokes are this much bigger at the blend's outer edge
 
 out vec2 v_st;          // s along the stroke 0–1, t across −1…1
 out vec3 v_color;
@@ -54,17 +59,20 @@ vec2 flowAt(vec2 px) {
   return len > 1e-4 ? d / len : vec2(1.0, 0.0);
 }
 
-/** How far px is outside face i's ellipse, in px (negative inside). */
-float faceDist(vec2 px, int i) {
-  vec3 f = u_faceShape[i];
-  float e = length((px - u_faceCentre[i]) / f.xy);
-  return (e - 1.0) * min(f.x, f.y);
+/** Where px is relative to face i's ellipse: 0 at the centre, 1 on the ellipse. */
+float faceE(vec2 px, int i) {
+  return length((px - u_faceCentre[i]) / u_faceShape[i].xy);
 }
 
-bool inAnyFace(vec2 px) {
+/** Face i's weight at px: 1 in the core, falling smoothly to 0 across the blend. */
+float faceWeight(vec2 px, int i) {
+  return 1.0 - smoothstep(FACE_INNER, FACE_OUTER, faceE(px, i));
+}
+
+bool inAnyCore(vec2 px) {
   for (int i = 0; i < 8; i++) {
     if (i >= u_faceCount) break;
-    if (faceDist(px, i) < 0.0) return true;
+    if (faceE(px, i) < FACE_INNER) return true;
   }
   return false;
 }
@@ -90,7 +98,7 @@ int trace(vec2 p0, vec2 dir, vec3 base, float stepLen, int limit, int want, bool
     vec2 np = p + m * stepLen;
     vec3 c = textureLod(u_src, np / u_size, u_lod).rgb;
     if ((k >= 2 && length(c - base) > u_edgeStop) || np.x < -u_width || np.y < -u_width || np.x > u_size.x + u_width || np.y > u_size.y + u_width) break;
-    if (stopAtFaces && inAnyFace(np)) break; // strokes from outside end at a face's edge
+    if (stopAtFaces && inAnyCore(np)) break; // strokes from outside end at a face's core (under its full coverage)
     p = np;
     prev = m;
     reached = k + 1;
@@ -124,25 +132,25 @@ void main() {
 
   // Faces. A separate random number, so pictures without faces paint exactly as before.
   float faceRnd = float(hash(s ^ 0x68bc21ebu) >> 8) / 16777216.0;
-  float maxHalfW = 1e9;
+  float faceGrow = 1.0;
   bool nearFace = false;
   bool startsInFace = false;
   if (u_face >= 0) {
-    // a face's own layer: the ellipse, feathered over its outer 15%
-    float e = faceDist(p0, u_face) / min(u_faceShape[u_face].x, u_faceShape[u_face].y);
-    if (faceRnd < smoothstep(-0.15, 0.0, e)) { hide(); return; }
+    // a face's own layer: all of the core, thinning out across the blend with strokes growing
+    float e = faceE(p0, u_face);
+    if (faceRnd >= 1.0 - smoothstep(FACE_INNER, FACE_OUTER, e)) { hide(); return; }
+    faceGrow = mix(1.0, FACE_EDGE_GROW, smoothstep(FACE_INNER, FACE_OUTER, e));
     startsInFace = true;
   } else {
     for (int i = 0; i < 8; i++) {
       if (i >= u_faceCount) break;
-      float d = faceDist(p0, i);
-      float brush = u_faceShape[i].z;
-      if (d < 0.0) startsInFace = true;
-      if (d < 2.0 * u_width) nearFace = true;
-      if (u_width > FACE_KEEP_OUT * brush) {
-        // too coarse for this face: none inside, and narrower close to it so it doesn't paint over it
-        if (d < 0.0) { hide(); return; }
-        maxHalfW = min(maxHalfW, max(d, brush));
+      float w = faceWeight(p0, i);
+      if (faceE(p0, i) < FACE_INNER) startsInFace = true;
+      if (u_width > FACE_KEEP_OUT * u_faceShape[i].z) {
+        // too coarse for this face: thins in across the blend, none in the core
+        if (faceRnd < w) { hide(); return; }
+      } else if (faceRnd < w) {
+        nearFace = true; // fine enough: paints regardless of the refinement gate, as much as the face weighs
       }
     }
   }
@@ -158,8 +166,8 @@ void main() {
   lab += (vec3(rnd(s), rnd(s), rnd(s)) - 0.5) * vec3(0.09, 0.045, 0.045) * u_jitter;
   vec3 color = oklabToSrgb(lab);
 
-  float len = u_length * (0.7 + 0.6 * rnd(s));
-  float halfW = min(0.5 * u_width * (0.8 + 0.4 * rnd(s)), maxHalfW);
+  float len = u_length * (0.7 + 0.6 * rnd(s)) * faceGrow;
+  float halfW = 0.5 * u_width * (0.8 + 0.4 * rnd(s)) * faceGrow;
   float seed = rnd(s);
 
   int j = gl_VertexID / 2;
