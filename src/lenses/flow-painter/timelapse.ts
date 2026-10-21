@@ -5,6 +5,7 @@ import { planLayers, timelapseBatch } from './plan';
 import { logEvent } from '../../diagnostics/log';
 import { fragment } from '../../gl/kit';
 import { resizeTo } from '../../util/canvas';
+import { detectFaces } from '../../util/faces';
 import COPY from './shaders/copy.frag.glsl?raw';
 
 /** Seconds: the photo, the strokes going down, and the finished painting. */
@@ -39,6 +40,7 @@ export function timelapseAction(): LensAction {
         const [w, h] = animationSize(probe.width, probe.height);
         probe.close();
         const bmp = await resizeTo(blob, w, h);
+        const faces = await detectFaces(bmp);
         anim = new GLAnimator(w, h, TIMELAPSE.fps);
         const a = anim;
         const input = a.texture(bmp);
@@ -77,6 +79,7 @@ export function timelapseAction(): LensAction {
             params,
             seed: ctx.capture.seed,
             quality: 'final',
+            ...(faces.length ? { faces } : {}),
             timelapse: {
               batch: timelapseBatch(layers, TIMELAPSE.strokes, TIMELAPSE.fps),
               frame: async (f) => {

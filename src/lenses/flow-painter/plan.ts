@@ -1,4 +1,5 @@
 /** Pure planning for Flow Painter: brush sizes, stroke grids and batches (all unit-tested). */
+import type { FaceBox } from '../types';
 
 export interface PaintParams {
   detail: number; // 0.5–2: stroke density and how readily fine layers paint
@@ -104,4 +105,106 @@ export function totalStrokes(layers: LayerPlan[]): number {
 /** Timelapse pacing: the stroke phase lasts `seconds` at `fps`, so each frame adds this many strokes. */
 export function timelapseBatch(layers: LayerPlan[], seconds: number, fps: number): number {
   return Math.max(1, Math.ceil(totalStrokes(layers) / Math.max(1, Math.round(seconds * fps))));
+}
+
+// ---------------------------------------------------------------- faces
+
+export type { FaceBox };
+
+/** Faces painted with their own brush (the shader's arrays hold this many). */
+export const MAX_FACES = 8;
+/** Faces narrower than this (output px) are left to the regular layers. */
+export const MIN_FACE_PX = 24;
+/** A face's brush is its width / this, so features (eyes, mouth) get a few strokes each. */
+export const FACE_BRUSHES = 24;
+/** Never finer than this (ref px), however small the face. */
+export const FACE_MIN_WIDTH = 1.5;
+/** Face strokes are this many brush widths long (short, so they shape features instead of crossing them). */
+export const FACE_STROKE_ASPECT = 2.5;
+/** Strokes cover each face pixel this many times at Detail 1 (denser than a regular layer: no gaps in a face). */
+export const FACE_COVERAGE = 4;
+/** Regular layers whose brush is more than this many times a face's brush stay out of that face. */
+export const FACE_KEEP_OUT = 2;
+/**
+ * The ellipse painted as the face, around the detected box (which runs from the brows to the chin):
+ * radii as fractions of the box, centre raised a little to take in the forehead.
+ */
+export const FACE_RX = 0.6;
+export const FACE_RY = 0.62;
+export const FACE_RAISE = 0.06;
+
+export interface FaceEllipse {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+}
+
+/** A face's own layer: a regular layer plan whose grid covers only the face's ellipse. */
+export interface FacePlan extends LayerPlan {
+  face: number;
+  /** Top-left of the stroke grid, output px. */
+  originX: number;
+  originY: number;
+  ellipse: FaceEllipse;
+}
+
+export function faceEllipse(f: FaceBox, width: number, height: number): FaceEllipse {
+  return {
+    cx: (f.x + f.w / 2) * width,
+    cy: (f.y + f.h / 2 - FACE_RAISE * f.h) * height,
+    rx: FACE_RX * f.w * width,
+    ry: FACE_RY * f.h * height,
+  };
+}
+
+/** Faces worth their own brush: on the picture, big enough, the largest MAX_FACES. */
+export function usableFaces(faces: readonly FaceBox[] | undefined, width: number, height: number): FaceBox[] {
+  if (!faces) return [];
+  return faces
+    .filter((f) => [f.x, f.y, f.w, f.h].every(Number.isFinite) && f.w > 0 && f.h > 0)
+    .filter((f) => f.x < 1 && f.y < 1 && f.x + f.w > 0 && f.y + f.h > 0)
+    .filter((f) => f.w * width >= MIN_FACE_PX)
+    .sort((a, b) => b.w * b.h - a.w * a.h)
+    .slice(0, MAX_FACES);
+}
+
+/**
+ * One fine layer per face, drawn after the regular layers: brush = face width / FACE_BRUSHES, between
+ * FACE_MIN_WIDTH and the finest regular brush. Layer indices continue after the regular layers, so
+ * `batches` and the stroke hashes treat them like any other layer.
+ */
+export function planFaces(faces: readonly FaceBox[] | undefined, width: number, height: number, p: PaintParams, layers: LayerPlan[]): FacePlan[] {
+  const ref = Math.min(width, height) / 1080;
+  const detail = Math.max(0.25, p.detail);
+  const finest = layers.length ? (layers[layers.length - 1] as LayerPlan).width : Math.max(1, p.strokeWidth * ref);
+  return usableFaces(faces, width, height).map((f, i) => {
+    const e = faceEllipse(f, width, height);
+    const w = Math.max(1, Math.min(finest, Math.max(FACE_MIN_WIDTH * ref, (f.w * width) / FACE_BRUSHES)));
+    const l = Math.max(w, Math.min(w * FACE_STROKE_ASPECT, p.strokeLength * ref));
+    const cell = Math.max(1, Math.sqrt((w * l) / (FACE_COVERAGE * detail)));
+    const x0 = Math.max(0, Math.floor(e.cx - e.rx));
+    const y0 = Math.max(0, Math.floor(e.cy - e.ry));
+    const x1 = Math.min(width, Math.ceil(e.cx + e.rx));
+    const y1 = Math.min(height, Math.ceil(e.cy + e.ry));
+    const cols = Math.max(1, Math.ceil((x1 - x0) / cell));
+    const rows = Math.max(1, Math.ceil((y1 - y0) / cell));
+    const count = cols * rows;
+    return {
+      index: layers.length + i,
+      width: w,
+      length: l,
+      cols,
+      rows,
+      count,
+      cell,
+      lod: Math.max(0, Math.log2(w / 2)),
+      prevLod: -1,
+      prime: coprimeMultiplier(count),
+      face: i,
+      originX: x0,
+      originY: y0,
+      ellipse: e,
+    };
+  });
 }

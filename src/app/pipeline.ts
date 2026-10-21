@@ -4,6 +4,7 @@ import type { Lens, Params } from '../lenses/types';
 import type { Settings } from '../storage/settings';
 import { resizeTo } from '../util/canvas';
 import type { OverlayConfig } from '../gl/overlay';
+import { detectFaces } from '../util/faces';
 
 export interface RenderedImage {
   blob: Blob;
@@ -69,7 +70,8 @@ export async function renderToImage(
   overlay?: OverlayConfig | null,
 ): Promise<RenderedImage> {
   const { width, height } = bitmap;
-  const pixels = await renderer.renderFinal(bitmap, width, height, lens, params, seed, onProgress, overlay);
+  const faces = lens.usesFaces ? await detectFaces(bitmap) : [];
+  const pixels = await renderer.renderFinal(bitmap, width, height, lens, params, seed, onProgress, overlay, faces);
   const canvas = makeCanvas(width, height);
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
   if (!ctx) throw new Error('2D canvas unavailable');

@@ -1,7 +1,7 @@
 import { COLOR_GLSL, GLSL_HEADER, Program, fragment, refScale, type GLKit, type RenderTarget } from '../../gl/kit';
 import { hexToRgb01 } from '../params';
 import type { Lens, Params, RenderRequest } from '../types';
-import { BATCH, FINAL_SEGMENTS, PREVIEW_SEGMENTS, batches, planLayers, previewLayers, type LayerPlan, type PaintParams } from './plan';
+import { BATCH, FINAL_SEGMENTS, PREVIEW_SEGMENTS, batches, planFaces, planLayers, previewLayers, type FacePlan, type LayerPlan, type PaintParams } from './plan';
 import { timelapseAction } from './timelapse';
 import STROKE_VS from './shaders/stroke.vert.glsl?raw';
 import STROKE_FS from './shaders/stroke.frag.glsl?raw';
@@ -38,7 +38,8 @@ export const flowPainterLens: Lens = {
   id: 'flow-painter',
   name: 'Flow Painter',
   tagline: 'Brush strokes that follow the shapes in the scene',
-  version: 3,
+  version: 4,
+  usesFaces: true,
   kind: 'still', // the viewfinder shows the coarse layers; full detail paints after capture
   seeded: true,
   actions: [timelapseAction()],
@@ -109,8 +110,19 @@ export const flowPainterLens: Lens = {
       return { tensor: t.a, src: t.src };
     }
 
-    function strokes(req: RenderRequest, t: Targets, layer: LayerPlan, first: number, count: number, segments: number) {
+    /** Face uniforms shared by every stroke draw of a render. */
+    function faceUniforms(faces: FacePlan[]) {
+      return {
+        count: faces.length,
+        centre: new Float32Array(faces.flatMap((f) => [f.ellipse.cx, f.ellipse.cy])),
+        shape: new Float32Array(faces.flatMap((f) => [f.ellipse.rx, f.ellipse.ry, f.width])),
+      };
+    }
+
+    function strokes(req: RenderRequest, t: Targets, layer: LayerPlan, first: number, count: number, segments: number, fu: ReturnType<typeof faceUniforms>) {
       const detail = Math.max(0.25, Number(req.params.detail));
+      const face = 'face' in layer ? (layer as FacePlan) : null;
+      const jitter = Number(req.params.jitter);
       kit.drawInstanced(
         p.stroke,
         t.paint as RenderTarget,
@@ -124,11 +136,14 @@ export const flowPainterLens: Lens = {
             u_lod: layer.lod,
             u_prevLod: layer.prevLod,
             u_accept: 0.06 / detail,
-            u_jitter: Number(req.params.jitter),
-            u_edgeStop: layer.prevLod < 0 ? 0.45 : 0.28,
+            // faces: less color noise, strokes that stop at small changes (features), and loaded brushes
+            u_jitter: face ? 0.4 * jitter : jitter,
+            u_edgeStop: face ? 0.16 : layer.prevLod < 0 ? 0.45 : 0.28,
             u_bristles: Math.max(3, layer.width / 1.6),
-            u_dry: layer.prevLod < 0 ? 0.1 : 0.4,
+            u_dry: face || layer.prevLod < 0 ? 0.1 : 0.4,
+            u_gridOrigin: face ? [face.originX, face.originY] : [0, 0],
           },
+          ...(fu.count ? { vec2Arrays: { u_faceCentre: fu.centre }, vec3Arrays: { u_faceShape: fu.shape } } : {}),
           ints: {
             u_cols: layer.cols,
             u_count: layer.count,
@@ -137,6 +152,8 @@ export const flowPainterLens: Lens = {
             u_layer: layer.index,
             u_seed: req.seed % 2147483647,
             u_segments: segments,
+            u_faceCount: fu.count,
+            u_face: face ? face.face : -1,
           },
         },
         2 * (segments + 1),
@@ -164,11 +181,15 @@ export const flowPainterLens: Lens = {
     return {
       async render(req, target) {
         const layers = planLayers(req.width, req.height, paintParams(req.params));
+        // each face gets a fine layer of its own, painted last
+        const faces = planFaces(req.faces, req.width, req.height, paintParams(req.params), layers);
+        const fu = faceUniforms(faces);
+        const facesNote = faces.length ? ` · ${faces.length} faces (${faces.reduce((n, l) => n + l.count, 0)} strokes)` : '';
         if (req.quality === 'preview') {
           const shown = previewLayers(layers);
-          lastPlan = `${shown.length}/${layers.length} layers · ${shown.reduce((n, l) => n + l.count, 0)} strokes`;
+          lastPlan = `${shown.length}/${layers.length} layers · ${shown.reduce((n, l) => n + l.count, 0)} strokes${facesNote}`;
           prepare(preview, req, PREVIEW_FIELD_EDGE);
-          for (const l of shown) strokes(req, preview, l, 0, l.count, PREVIEW_SEGMENTS);
+          for (const l of [...shown, ...faces]) strokes(req, preview, l, 0, l.count, PREVIEW_SEGMENTS, fu);
           finish(req, preview, target);
           return;
         }
@@ -177,17 +198,18 @@ export const flowPainterLens: Lens = {
         try {
           prepare(t, req, FINAL_FIELD_EDGE);
           const tl = req.timelapse;
-          const list = batches(layers, tl ? Math.max(1, Math.round(tl.batch)) : BATCH);
-          lastPlan = `final ${layers.length} layers · ${layers.reduce((n, l) => n + l.count, 0)} strokes · ${list.length} batches`;
+          const all: LayerPlan[] = [...layers, ...faces];
+          const list = batches(all, tl ? Math.max(1, Math.round(tl.batch)) : BATCH);
+          lastPlan = `final ${layers.length} layers · ${layers.reduce((n, l) => n + l.count, 0)} strokes${facesNote} · ${list.length} batches`;
           if (tl) {
             finish(req, t, target); // the underpainting
             await tl.frame(0);
           }
           for (let i = 0; i < list.length; i++) {
             const bt = list[i];
-            const layer = bt && layers[bt.layer];
+            const layer = bt && all[bt.layer];
             if (!bt || !layer) continue;
-            strokes(req, t, layer, bt.first, bt.count, FINAL_SEGMENTS);
+            strokes(req, t, layer, bt.first, bt.count, FINAL_SEGMENTS, fu);
             if (tl) {
               finish(req, t, target);
               await tl.frame((i + 1) / list.length);

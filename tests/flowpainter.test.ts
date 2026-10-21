@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BATCH, PREVIEW_BUDGET, batches, coprimeMultiplier, planLayers, previewLayers } from '../src/lenses/flow-painter/plan';
+import { BATCH, FACE_RAISE, FACE_RY, MAX_FACES, PREVIEW_BUDGET, batches, coprimeMultiplier, faceEllipse, planFaces, planLayers, previewLayers, usableFaces } from '../src/lenses/flow-painter/plan';
 
 const DEF = { detail: 1, strokeLength: 40, strokeWidth: 6, layers: 3 };
 
@@ -77,5 +77,61 @@ describe('timelapse pacing', () => {
     const [w, h] = animationSize(1001, 777);
     expect(w % 2 + h % 2).toBe(0);
     expect(frameCount(2.5, 20)).toBe(50);
+  });
+});
+
+describe('flow painter faces', () => {
+  const p = { detail: 1, strokeLength: 40, strokeWidth: 6, layers: 3 };
+  const face = { x: 0.4, y: 0.3, w: 0.1, h: 0.13 };
+
+  it('gives each face a fine layer of its own after the regular layers', () => {
+    const layers = planLayers(1440, 1080, p);
+    const faces = planFaces([face], 1440, 1080, p, layers);
+    expect(faces).toHaveLength(1);
+    const f = faces[0]!;
+    expect(f.index).toBe(layers.length);
+    expect(f.prevLod).toBe(-1);
+    // 144 px face / 24 brushes = 6 px, no coarser than the finest regular brush (6 ref px here)
+    expect(f.width).toBeCloseTo(6, 6);
+    expect(f.length).toBeCloseTo(15, 6);
+    // the grid covers the ellipse, which takes in a little more than the box
+    expect(f.originX).toBeLessThan(0.4 * 1440);
+    expect(f.originX + f.cols * f.cell).toBeGreaterThan(0.5 * 1440);
+    const all = [...layers, ...faces];
+    expect(batches(all).filter((b) => b.layer === f.index).reduce((n, b) => n + b.count, 0)).toBe(f.count);
+  });
+
+  it('sizes the face brush with the face, within limits', () => {
+    const layers = planLayers(1440, 1080, { ...p, strokeWidth: 20 });
+    const small = planFaces([{ ...face, w: 0.03 }], 1440, 1080, p, layers)[0]!;
+    const big = planFaces([{ ...face, w: 0.5 }], 1440, 1080, p, layers)[0]!;
+    expect(small.width).toBeCloseTo(1.8, 6); // 43.2 px / 24
+    expect(big.width).toBeCloseTo(20, 6); // capped at the finest regular brush
+    const tiny = planFaces([{ ...face, w: 0.017 }], 1440, 1080, p, layers);
+    expect(tiny).toHaveLength(1);
+    expect(tiny[0]!.width).toBeCloseTo(1.5, 6); // FACE_MIN_WIDTH
+  });
+
+  it('is resolution independent', () => {
+    const a = planFaces([face], 1440, 1080, p, planLayers(1440, 1080, p))[0]!;
+    const b = planFaces([face], 4320, 3240, p, planLayers(4320, 3240, p))[0]!;
+    expect(b.width / a.width).toBeCloseTo(3, 6);
+    expect(Math.abs(b.count - a.count) / a.count).toBeLessThan(0.05);
+  });
+
+  it('ignores bad, tiny and off-picture faces and keeps the largest few', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ x: 0.05 * i, y: 0.1, w: 0.02 + 0.005 * i, h: 0.05 }));
+    const kept = usableFaces([...many, { x: NaN, y: 0, w: 0.1, h: 0.1 }, { x: 1.2, y: 0, w: 0.1, h: 0.1 }, { x: 0, y: 0, w: 0.001, h: 0.1 }], 1440, 1080);
+    expect(kept).toHaveLength(MAX_FACES);
+    expect(kept[0]!.w).toBeCloseTo(0.075, 6);
+    expect(usableFaces(undefined, 100, 100)).toEqual([]);
+  });
+
+  it('turns a face box into the ellipse painted as the face', () => {
+    const e = faceEllipse(face, 1000, 1000);
+    expect(e.cx).toBeCloseTo(450, 6);
+    expect(e.cy).toBeCloseTo(1000 * (0.3 + 0.065 - FACE_RAISE * 0.13), 6);
+    expect(e.rx).toBeCloseTo(60, 6);
+    expect(e.ry).toBeCloseTo(1000 * FACE_RY * 0.13, 6);
   });
 });
