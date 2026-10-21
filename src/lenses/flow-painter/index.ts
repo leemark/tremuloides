@@ -38,7 +38,7 @@ export const flowPainterLens: Lens = {
   id: 'flow-painter',
   name: 'Flow Painter',
   tagline: 'Brush strokes that follow the shapes in the scene',
-  version: 4,
+  version: 5,
   usesFaces: true,
   kind: 'still', // the viewfinder shows the coarse layers; full detail paints after capture
   seeded: true,

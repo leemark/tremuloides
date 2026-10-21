@@ -132,6 +132,12 @@ export const FACE_KEEP_OUT = 2;
 export const FACE_RX = 0.6;
 export const FACE_RY = 0.62;
 export const FACE_RAISE = 0.06;
+/**
+ * The face blends into the painting with no edge: full weight inside FACE_INNER × the ellipse, falling
+ * smoothly to none at FACE_REACH × the ellipse (stroke.vert mirrors both). The face's grid covers the reach.
+ */
+export const FACE_INNER = 0.7;
+export const FACE_REACH = 1.4;
 
 export interface FaceEllipse {
   cx: number;
@@ -183,10 +189,10 @@ export function planFaces(faces: readonly FaceBox[] | undefined, width: number, 
     const w = Math.max(1, Math.min(finest, Math.max(FACE_MIN_WIDTH * ref, (f.w * width) / FACE_BRUSHES)));
     const l = Math.max(w, Math.min(w * FACE_STROKE_ASPECT, p.strokeLength * ref));
     const cell = Math.max(1, Math.sqrt((w * l) / (FACE_COVERAGE * detail)));
-    const x0 = Math.max(0, Math.floor(e.cx - e.rx));
-    const y0 = Math.max(0, Math.floor(e.cy - e.ry));
-    const x1 = Math.min(width, Math.ceil(e.cx + e.rx));
-    const y1 = Math.min(height, Math.ceil(e.cy + e.ry));
+    const x0 = Math.max(0, Math.floor(e.cx - FACE_REACH * e.rx));
+    const y0 = Math.max(0, Math.floor(e.cy - FACE_REACH * e.ry));
+    const x1 = Math.min(width, Math.ceil(e.cx + FACE_REACH * e.rx));
+    const y1 = Math.min(height, Math.ceil(e.cy + FACE_REACH * e.ry));
     const cols = Math.max(1, Math.ceil((x1 - x0) / cell));
     const rows = Math.max(1, Math.ceil((y1 - y0) / cell));
     const count = cols * rows;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BATCH, FACE_RAISE, FACE_RY, MAX_FACES, PREVIEW_BUDGET, batches, coprimeMultiplier, faceEllipse, planFaces, planLayers, previewLayers, usableFaces } from '../src/lenses/flow-painter/plan';
+import { BATCH, FACE_RAISE, FACE_REACH, FACE_RY, MAX_FACES, PREVIEW_BUDGET, batches, coprimeMultiplier, faceEllipse, planFaces, planLayers, previewLayers, usableFaces } from '../src/lenses/flow-painter/plan';
 
 const DEF = { detail: 1, strokeLength: 40, strokeWidth: 6, layers: 3 };
 
@@ -97,6 +97,9 @@ describe('flow painter faces', () => {
     // the grid covers the ellipse, which takes in a little more than the box
     expect(f.originX).toBeLessThan(0.4 * 1440);
     expect(f.originX + f.cols * f.cell).toBeGreaterThan(0.5 * 1440);
+    // ...and the soft blend around it
+    expect(f.originX).toBe(Math.floor(f.ellipse.cx - FACE_REACH * f.ellipse.rx));
+    expect(f.originY + f.rows * f.cell).toBeGreaterThanOrEqual(f.ellipse.cy + FACE_REACH * f.ellipse.ry);
     const all = [...layers, ...faces];
     expect(batches(all).filter((b) => b.layer === f.index).reduce((n, b) => n + b.count, 0)).toBe(f.count);
   });

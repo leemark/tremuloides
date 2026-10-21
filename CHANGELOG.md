@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.26.1 (2026-10-20)
+- Flow Painter: faces blend into the painting. No more oval or ring of stroke ends around them; the brushwork gets finer gradually toward each face
+
 ## v0.26.0 (2026-10-20)
 - Flow Painter paints faces with care: smaller, shorter strokes on each face, so eyes and smiles stay readable, and big strokes no longer smear across them
 - Needs a browser that can find faces. On Android Chrome, turn on chrome://flags → Experimental Web Platform features. Without it, Flow Painter paints as before
