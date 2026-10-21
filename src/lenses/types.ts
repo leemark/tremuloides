@@ -46,6 +46,8 @@ export interface LensMeta {
   params: ParamSpec[];
   /** Temporal lenses only (e.g. Quake, M3). */
   temporal?: { maxFrames: number; historyScale: number };
+  /** The lens paints faces with care: final renders detect them first and pass `faces`. */
+  usesFaces?: boolean;
   /** Shutter behaviour; defaults to 'still' (one photo through the lens). */
   captureStyle?: (params: Params) => CaptureStyle;
 }
@@ -73,6 +75,14 @@ export interface CaptureResult {
   method: 'burst' | 'slit-scan' | 'long-exposure';
 }
 
+/** A face as a box in 0–1 picture coordinates (x right, y down): Shape Detection's boundingBox, normalized. */
+export interface FaceBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface RenderRequest {
   /** RGBA8 source texture in image space: v = 0 is the TOP row of the image (see GLKit.upload). */
   input: WebGLTexture;
@@ -86,6 +96,8 @@ export interface RenderRequest {
   quality: 'preview' | 'final';
   history?: FrameHistory;
   onProgress?: (fraction: number) => void;
+  /** Faces in the picture, for lenses that paint them with care (`usesFaces`). Empty or absent: none known. */
+  faces?: readonly FaceBox[];
   /**
    * Progressive lenses (Flow Painter) can show their work: draw in batches of `batch` strokes,
    * write the current state into the target after each, and await `frame()`.

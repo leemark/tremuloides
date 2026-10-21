@@ -50,5 +50,6 @@ export function capabilities(): Record<string, boolean> {
     requestVideoFrameCallback: typeof HTMLVideoElement !== 'undefined' && 'requestVideoFrameCallback' in HTMLVideoElement.prototype,
     audioSession: 'audioSession' in nav,
     serviceWorker: 'serviceWorker' in nav,
+    faceDetector: typeof g.FaceDetector === 'function',
   };
 }

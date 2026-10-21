@@ -4,7 +4,7 @@ import DISPLAY_FRAG from './shaders/display.frag.glsl?raw';
 import COPY_FRAG from './shaders/copy.frag.glsl?raw';
 import { FrameHistoryBuffer } from './history';
 import { previewHistoryPlan } from '../lenses/quake/plan';
-import type { CaptureResult, Lens, LensInstance, Params } from '../lenses/types';
+import type { CaptureResult, FaceBox, Lens, LensInstance, Params } from '../lenses/types';
 import { Overlay, overlayActive, type OverlayConfig } from './overlay';
 import { logEvent } from '../diagnostics/log';
 
@@ -276,6 +276,7 @@ export class Renderer {
     seed: number,
     onProgress?: (fraction: number) => void,
     overlay?: OverlayConfig | null,
+    faces?: readonly FaceBox[],
   ): Promise<ImageData> {
     if (this.isLost) throw new Error('Graphics context was lost; try again in a moment.');
     const kit = this.kit;
@@ -286,7 +287,18 @@ export class Renderer {
       kit.upload(tex, source);
       target = kit.createTarget(width, height);
       await this.instance(lens).render(
-        { input: tex, inputWidth: width, inputHeight: height, width, height, params, seed, quality: 'final', ...(onProgress ? { onProgress } : {}) },
+        {
+          input: tex,
+          inputWidth: width,
+          inputHeight: height,
+          width,
+          height,
+          params,
+          seed,
+          quality: 'final',
+          ...(onProgress ? { onProgress } : {}),
+          ...(faces?.length ? { faces } : {}),
+        },
         target,
       );
       let result = target;

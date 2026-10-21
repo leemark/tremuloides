@@ -2,6 +2,15 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.26.0: Flow Painter faces
+Needs chrome://flags/#enable-experimental-web-platform-features **Enabled** (then relaunch Chrome). Settings → Diagnostics should show `faceDetector: true`.
+1. Take or import a photo of one or two people, faces at least a tenth of the picture wide. Pick **Flow Painter** and render.
+2. Faces: eyes, mouth and nose are readable, painted in small short strokes. The rest of the picture is painted as before.
+3. No big stroke runs across a face; hair and background strokes stop at its edge, with no bare canvas around it.
+4. Settings → Diagnostics → log: a `faces` line ("2 faces found"), and the flow-painter plan line lists the faces and their strokes.
+5. A photo with no people renders exactly as before. Turn the flag off: people photos paint as before too.
+6. Timelapse on a people photo: the faces are painted last, in fine strokes.
+
 ## v0.25.1: Flow Painter stroke ends
 1. Take or import a photo with busy texture: autumn scrub, shrubs, a crowd. Pick **Flow Painter**, Stroke width 11, Stroke length 58.
 2. Zoom in on the busy part: short strokes are rounded, tapered dabs, not rectangles with square ends.
