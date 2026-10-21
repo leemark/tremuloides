@@ -2,6 +2,12 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.25.1: Flow Painter stroke ends
+1. Take or import a photo with busy texture: autumn scrub, shrubs, a crowd. Pick **Flow Painter**, Stroke width 11, Stroke length 58.
+2. Zoom in on the busy part: short strokes are rounded, tapered dabs, not rectangles with square ends.
+3. Long strokes in calm areas (sky, smooth slopes) look the same as before, with dry-brush streaks at their tails.
+4. Set Detail 2, Stroke width 2, Stroke length 10, Layers 4 and render: strokes cover the photo evenly (no stripes or bunching).
+
 ## v0.25.0: Crop
 1. Camera → picture icon → pick one photo. In the editor, tap **Crop** (top right).
 2. Drag a corner in, drag inside the frame to move it, then tap **4:5**: the frame snaps to 4:5 and stays that shape as you drag.

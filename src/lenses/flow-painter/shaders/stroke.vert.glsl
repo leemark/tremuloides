@@ -22,6 +22,7 @@ uniform float u_edgeStop;   // strokes stop where the color changes by more than
 out vec2 v_st;          // s along the stroke 0–1, t across −1…1
 out vec3 v_color;
 flat out float v_seed;
+flat out float v_run; // how much of its planned length the stroke ran (short dabs don't run dry)
 
 uint hash(uint x) {
   x ^= x >> 16; x *= 0x7feb352du;
@@ -44,16 +45,52 @@ vec2 flowAt(vec2 px) {
   return len > 1e-4 ? d / len : vec2(1.0, 0.0);
 }
 
+/**
+ * Follows the flow field from p0 along dir for up to `limit` steps, stopping at a color edge (after 2
+ * steps) or past the picture. Returns the steps taken; `at` and `atDir` get the point and direction
+ * after `want` steps (or at the end, if the trace stops sooner).
+ */
+int trace(vec2 p0, vec2 dir, vec3 base, float stepLen, int limit, int want, out vec2 at, out vec2 atDir) {
+  vec2 p = p0;
+  vec2 prev = dir;
+  at = p0;
+  atDir = dir;
+  int reached = 0;
+  for (int k = 0; k < 8; k++) {
+    if (k >= limit) break;
+    vec2 d = flowAt(p);
+    if (dot(d, prev) < 0.0) d = -d;
+    // Midpoint step for smoother curves.
+    vec2 m = flowAt(p + d * stepLen * 0.5);
+    if (dot(m, d) < 0.0) m = -m;
+    vec2 np = p + m * stepLen;
+    vec3 c = textureLod(u_src, np / u_size, u_lod).rgb;
+    if ((k >= 2 && length(c - base) > u_edgeStop) || np.x < -u_width || np.y < -u_width || np.x > u_size.x + u_width || np.y > u_size.y + u_width) break;
+    p = np;
+    prev = m;
+    reached = k + 1;
+    if (reached <= want) {
+      at = p;
+      atDir = prev;
+    }
+  }
+  return reached;
+}
+
 void hide() {
   gl_Position = vec4(3.0, 3.0, 0.0, 1.0); // whole strip off-screen: nothing is drawn
   v_st = vec2(0.0);
   v_color = vec3(0.0);
   v_seed = 0.0;
+  v_run = 0.0;
 }
 
 void main() {
   int inst = gl_InstanceID + u_offset;
-  int idx = (inst * u_prime) % u_count; // inst < count and prime < 8000, so no overflow
+  // (inst · prime) mod count, split so it never overflows 32 bits: a fine layer can have ~900k strokes,
+  // and 900k × 7919 doesn't fit. (prime / 64) · inst stays under 2³¹ for count < 17M.
+  int idxA = (inst * (u_prime / 64)) % u_count;
+  int idx = (idxA * 64 + inst * (u_prime % 64)) % u_count;
   uint s = hash(uint(idx) * 747796405u + uint(u_layer) * 2891336453u + uint(u_seed));
   vec2 cell = vec2(float(idx % u_cols), float(idx / u_cols));
   vec2 p0 = (cell + vec2(rnd(s), rnd(s))) * u_cell;
@@ -83,33 +120,27 @@ void main() {
   float stepLen = len / float(u_segments);
 
   vec2 d0 = flowAt(p0);
-  vec2 p = p0;
-  vec2 prev = d0 * dirSign;
-  bool alive = true;
-  for (int k = 0; k < 8; k++) {
-    if (k >= steps || !alive) break;
-    vec2 d = flowAt(p);
-    if (dot(d, prev) < 0.0) d = -d;
-    // Midpoint step for smoother curves.
-    vec2 m = flowAt(p + d * stepLen * 0.5);
-    if (dot(m, d) < 0.0) m = -m;
-    vec2 np = p + m * stepLen;
-    vec3 c = textureLod(u_src, np / u_size, u_lod).rgb;
-    if ((k >= 2 && length(c - base) > u_edgeStop) || np.x < -u_width || np.y < -u_width || np.x > u_size.x + u_width || np.y > u_size.y + u_width) {
-      alive = false;
-    } else {
-      p = np;
-      prev = m;
-    }
-  }
-  vec2 fwd = prev * dirSign; // forward direction keeps the strip from twisting at the centre
+  // Trace both sides of the spine to where they really end. A stroke that stops early at a color edge
+  // keeps its tapered, narrower tips at its real ends, and is never wider than half its length: a
+  // short stroke is a small dab, as a painter would make it. (Measured from the planned length, early
+  // stops were only their square-ended middles: the "bricks" in busy textures.)
+  vec2 mine = p0;
+  vec2 minePrev = d0 * dirSign;
+  int reached = trace(p0, d0 * dirSign, base, stepLen, mid, steps, mine, minePrev);
+  vec2 unused0, unused1;
+  int other = trace(p0, -d0 * dirSign, base, stepLen, mid, 0, unused0, unused1);
+  float spine = float(reached + other) * stepLen;
+  halfW = min(halfW, max(0.25 * spine, 0.4 * halfW));
+  vec2 fwd = minePrev * dirSign; // forward direction keeps the strip from twisting at the centre
   vec2 n = vec2(-fwd.y, fwd.x);
-  float sAlong = float(j) / float(u_segments);
+  // 0 and 1 at the real tips, 0.5 at the centre (j / segments when the stroke runs its full length)
+  float sAlong = steps > 0 && reached > 0 ? 0.5 + 0.5 * dirSign * float(min(steps, reached)) / float(reached) : 0.5;
   float profile = 0.7 + 0.3 * sin(3.14159265 * sAlong);
-  vec2 pos = p + n * side * halfW * profile;
+  vec2 pos = mine + n * side * halfW * profile;
 
   gl_Position = vec4(pos / u_size * 2.0 - 1.0, 0.0, 1.0);
   v_st = vec2(sAlong, side);
   v_color = color;
   v_seed = seed;
+  v_run = clamp(spine / len, 0.0, 1.0);
 }

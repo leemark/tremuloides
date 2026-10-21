@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.25.1 (2026-10-20)
+- Flow Painter: short strokes in busy areas (bushes, scrub, crowds) are now soft, tapered dabs instead of square bricks
+- Fixed Flow Painter at the very highest Detail with the finest, shortest strokes, where strokes could land in the wrong places
+
 ## v0.25.0 (2026-10-19)
 - Crop and rotate before applying a lens: tap **Crop** at the top of the editor. Pick Free, Original, Square, 4:5, 2:3, 3:2, 16:9 or 9:16, drag the corners, and turn the photo with Rotate.
 - To crop a photo you've already taken, open it, tap Re-edit, then Crop. Choose the Original lens for a plain crop with no effect.
