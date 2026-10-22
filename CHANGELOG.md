@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.28.0 (2026-10-22)
+- New lens: **Pointillism**. Your photo rebuilt from thousands of dots of pure color that blend in your eye, as Seurat painted. Faces get finer dots
+- Choose the dot size, pure pigments or the photo's own colors, and how far the colors separate. Timelapse shows every dot going down
+
 ## v0.27.0 (2026-10-22)
 - New lens: **Impasto**. Flow Painter's brushwork as thick oil paint, with ridges and furrows that catch the light and wet highlights
 - Set how thick and glossy the paint is, and which side the light comes from

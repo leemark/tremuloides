@@ -2,6 +2,13 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.28.0: Pointillism
+1. Render a landscape in **Pointillism**. Zoom in: separate round dots in pure colors (oranges, yellows, reds, blues) over a cream canvas. At full view the colors match the photo.
+2. Colors → **Photo colors**: dots in the photo's own colors, less vivid. Color separation 0: dots nearly the photo's color; 1: strong, pure pigments.
+3. Dot size 20: big confetti dots; 3: fine, almost a photo.
+4. A photo of people (face flag on): faces in finer dots, eyes and smiles readable, no oval.
+5. Timelapse on a Pointillism photo: the canvas, then dots spreading evenly over the picture, coarse to fine, faces last.
+
 ## v0.27.0: Impasto
 1. Take or import a landscape photo. Pick **Impasto** and render: brush strokes stand up as ridges, lit from the top left, with fine bristle furrows and a few glints.
 2. Colors match Flow Painter's on the same photo: flat areas aren't darker or washed out.
