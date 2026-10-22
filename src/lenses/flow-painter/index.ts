@@ -1,6 +1,6 @@
 import { COLOR_GLSL, GLSL_HEADER, Program, fragment, refScale, type GLKit, type RenderTarget } from '../../gl/kit';
 import { hexToRgb01 } from '../params';
-import type { Lens, Params, RenderRequest } from '../types';
+import type { Lens, LensInstance, ParamSpec, Params, RenderRequest } from '../types';
 import { BATCH, FINAL_SEGMENTS, PREVIEW_SEGMENTS, batches, planFaces, planLayers, previewLayers, type FacePlan, type LayerPlan, type PaintParams } from './plan';
 import { timelapseAction } from './timelapse';
 import STROKE_VS from './shaders/stroke.vert.glsl?raw';
@@ -10,6 +10,8 @@ import BLUR from './shaders/blur.frag.glsl?raw';
 import COPY from './shaders/copy.frag.glsl?raw';
 import CANVAS from './shaders/canvas.frag.glsl?raw';
 import WASH from './shaders/wash.frag.glsl?raw';
+import IMPASTO_FS from '../impasto/shaders/impasto.frag.glsl?raw';
+import LIGHT from '../impasto/shaders/light.frag.glsl?raw';
 
 const PREVIEW_FIELD_EDGE = 512;
 const FINAL_FIELD_EDGE = 1024;
@@ -32,7 +34,44 @@ interface Targets {
   a: RenderTarget | null;
   b: RenderTarget | null;
   paint: RenderTarget | null;
+  /** Impasto only: paint thickness, and a framebuffer drawing color and thickness together. */
+  height: RenderTarget | null;
+  both: RenderTarget | null;
 }
+
+/**
+ * Impasto (`../impasto`): every stroke also lays down paint thickness, and the finished paint is lit.
+ * Thickness is stored in reference px divided by HEIGHT_UNIT, so it fits 0–1 on GPUs without half-float targets.
+ */
+export interface Relief {
+  /** 0–1: how thick the paint is (a full bead stands a third of a brush width tall at 1). */
+  thickness: number;
+  /** 0–1: wet-oil highlights. */
+  gloss: number;
+  /** Degrees, counterclockwise from the right: where the light comes from (135 = upper left). */
+  lightAngle: number;
+}
+export const HEIGHT_UNIT = 32;
+
+export const FLOW_PARAMS: ParamSpec[] = [
+  { id: 'detail', label: 'Detail', type: 'range', min: 0.5, max: 2, step: 0.05, default: 1, help: 'More strokes, and fine brushes paint more of the picture' },
+  { id: 'strokeLength', label: 'Stroke length', type: 'range', min: 10, max: 120, step: 1, default: 40 },
+  { id: 'strokeWidth', label: 'Stroke width', type: 'range', min: 2, max: 20, step: 0.5, default: 6, help: 'Finest brush; each coarser layer doubles it' },
+  { id: 'jitter', label: 'Color jitter', type: 'range', min: 0, max: 1, step: 0.05, default: 0.45 },
+  { id: 'layers', label: 'Layers', type: 'range', min: 1, max: 4, step: 1, default: 3, help: 'Coarse-to-fine passes of the brush' },
+  {
+    id: 'canvas',
+    label: 'Canvas tone',
+    type: 'select',
+    options: [
+      { value: 'linen', label: 'Linen' },
+      { value: 'umber', label: 'Raw umber ground' },
+      { value: 'gesso', label: 'White gesso' },
+      { value: 'slate', label: 'Slate' },
+    ],
+    default: 'linen',
+  },
+];
 
 export const flowPainterLens: Lens = {
   id: 'flow-painter',
@@ -43,197 +82,235 @@ export const flowPainterLens: Lens = {
   kind: 'still', // the viewfinder shows the coarse layers; full detail paints after capture
   seeded: true,
   actions: [timelapseAction()],
-  params: [
-    { id: 'detail', label: 'Detail', type: 'range', min: 0.5, max: 2, step: 0.05, default: 1, help: 'More strokes, and fine brushes paint more of the picture' },
-    { id: 'strokeLength', label: 'Stroke length', type: 'range', min: 10, max: 120, step: 1, default: 40 },
-    { id: 'strokeWidth', label: 'Stroke width', type: 'range', min: 2, max: 20, step: 0.5, default: 6, help: 'Finest brush; each coarser layer doubles it' },
-    { id: 'jitter', label: 'Color jitter', type: 'range', min: 0, max: 1, step: 0.05, default: 0.45 },
-    { id: 'layers', label: 'Layers', type: 'range', min: 1, max: 4, step: 1, default: 3, help: 'Coarse-to-fine passes of the brush' },
-    {
-      id: 'canvas',
-      label: 'Canvas tone',
-      type: 'select',
-      options: [
-        { value: 'linen', label: 'Linen' },
-        { value: 'umber', label: 'Raw umber ground' },
-        { value: 'gesso', label: 'White gesso' },
-        { value: 'slate', label: 'Slate' },
-      ],
-      default: 'linen',
-    },
-  ],
+  params: FLOW_PARAMS,
 
   create(kit: GLKit) {
-    const gl = kit.gl;
-    const p = {
-      copy: kit.program(fragment(COPY), 'flow.copy'),
-      tensor: kit.program(fragment(COLOR_GLSL, TENSOR), 'flow.tensor'),
-      blur: kit.program(fragment(BLUR), 'flow.blur'),
-      stroke: new Program(gl, fragment(STROKE_FS), GLSL_HEADER + COLOR_GLSL + '\n' + STROKE_VS, 'flow.stroke'),
-      canvas: kit.program(fragment(CANVAS), 'flow.canvas'),
-      wash: kit.program(fragment(WASH), 'flow.wash'),
-    };
-    const preview: Targets = { src: null, a: null, b: null, paint: null };
-    let lastPlan = '';
-
-    /** Photo copy with mipmaps (blurred colors per brush size), and the smoothed structure tensor. */
-    function prepare(t: Targets, req: RenderRequest, fieldEdge: number): { tensor: RenderTarget; src: RenderTarget } {
-      const W = req.width;
-      const H = req.height;
-      t.src = kit.ensureTarget(t.src, W, H);
-      kit.draw(p.copy, t.src, { textures: { u_input: req.input } });
-      gl.bindTexture(gl.TEXTURE_2D, t.src.tex);
-      gl.generateMipmap(gl.TEXTURE_2D);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-
-      const s = Math.min(1, fieldEdge / Math.max(W, H));
-      const fw = Math.max(2, Math.round(W * s));
-      const fh = Math.max(2, Math.round(H * s));
-      t.a = kit.ensureTarget(t.a, fw, fh, 'rgba16f');
-      t.b = kit.ensureTarget(t.b, fw, fh, 'rgba16f');
-      const fieldRef = refScale(fw, fh);
-      kit.draw(p.tensor, t.a, {
-        textures: { u_src: t.src.tex as WebGLTexture },
-        uniforms: { u_texel: [1 / fw, 1 / fh], u_lod: Math.max(0, Math.log2(W / fw)), u_gradScale: fieldRef, u_flat: FLAT_GRADIENT },
-      });
-      const sigma = Math.min(24, Math.max(4, 2 * Number(req.params.strokeWidth))) * fieldRef;
-      kit.draw(p.blur, t.b, { textures: { u_src: t.a.tex as WebGLTexture }, uniforms: { u_dir: [1 / fw, 0], u_sigma: sigma } });
-      kit.draw(p.blur, t.a, { textures: { u_src: t.b.tex as WebGLTexture }, uniforms: { u_dir: [0, 1 / fh], u_sigma: sigma } });
-      t.paint = kit.ensureTarget(t.paint, W, H);
-      kit.draw(p.wash, t.paint, {
-        textures: { u_src: t.src.tex as WebGLTexture },
-        uniforms: {
-          u_tone: hexToRgb01(CANVAS_TONES[String(req.params.canvas)] ?? CANVAS_TONES.linen ?? '#e8dcc4'),
-          u_lod: Math.max(0, Math.log2((Math.max(4, Number(req.params.strokeWidth)) * 8 * refScale(W, H)) / 2)),
-        },
-      });
-      return { tensor: t.a, src: t.src };
-    }
-
-    /** Face uniforms shared by every stroke draw of a render. */
-    function faceUniforms(faces: FacePlan[]) {
-      return {
-        count: faces.length,
-        centre: new Float32Array(faces.flatMap((f) => [f.ellipse.cx, f.ellipse.cy])),
-        shape: new Float32Array(faces.flatMap((f) => [f.ellipse.rx, f.ellipse.ry, f.width])),
-      };
-    }
-
-    function strokes(req: RenderRequest, t: Targets, layer: LayerPlan, first: number, count: number, segments: number, fu: ReturnType<typeof faceUniforms>) {
-      const detail = Math.max(0.25, Number(req.params.detail));
-      const face = 'face' in layer ? (layer as FacePlan) : null;
-      const jitter = Number(req.params.jitter);
-      kit.drawInstanced(
-        p.stroke,
-        t.paint as RenderTarget,
-        {
-          textures: { u_src: (t.src as RenderTarget).tex as WebGLTexture, u_tensor: (t.a as RenderTarget).tex as WebGLTexture },
-          uniforms: {
-            u_size: [req.width, req.height],
-            u_cell: layer.cell,
-            u_width: layer.width,
-            u_length: layer.length,
-            u_lod: layer.lod,
-            u_prevLod: layer.prevLod,
-            u_accept: 0.06 / detail,
-            // faces: less color noise, strokes that stop at small changes (features), and loaded brushes
-            u_jitter: face ? 0.4 * jitter : jitter,
-            u_edgeStop: face ? 0.16 : layer.prevLod < 0 ? 0.45 : 0.28,
-            u_bristles: Math.max(3, layer.width / 1.6),
-            u_dry: face || layer.prevLod < 0 ? 0.1 : 0.4,
-            u_gridOrigin: face ? [face.originX, face.originY] : [0, 0],
-          },
-          ...(fu.count ? { vec2Arrays: { u_faceCentre: fu.centre }, vec3Arrays: { u_faceShape: fu.shape } } : {}),
-          ints: {
-            u_cols: layer.cols,
-            u_count: layer.count,
-            u_prime: layer.prime,
-            u_offset: first,
-            u_layer: layer.index,
-            u_seed: req.seed % 2147483647,
-            u_segments: segments,
-            u_faceCount: fu.count,
-            u_face: face ? face.face : -1,
-          },
-        },
-        2 * (segments + 1),
-        count,
-        true,
-      );
-    }
-
-    function finish(req: RenderRequest, t: Targets, target: RenderTarget) {
-      kit.draw(p.canvas, target, {
-        textures: { u_paint: (t.paint as RenderTarget).tex as WebGLTexture },
-        // The weave fades out when it would be finer than ~1.5 px (small previews), avoiding moiré.
-        uniforms: { u_ref: refScale(req.width, req.height), u_weave: Math.min(1, Math.max(0, (2.2 * refScale(req.width, req.height) - 1.5) / 2)) },
-      });
-    }
-
-    function free(t: Targets) {
-      kit.deleteTarget(t.src);
-      kit.deleteTarget(t.a);
-      kit.deleteTarget(t.b);
-      kit.deleteTarget(t.paint);
-      t.src = t.a = t.b = t.paint = null;
-    }
-
-    return {
-      async render(req, target) {
-        const layers = planLayers(req.width, req.height, paintParams(req.params));
-        // each face gets a fine layer of its own, painted last
-        const faces = planFaces(req.faces, req.width, req.height, paintParams(req.params), layers);
-        const fu = faceUniforms(faces);
-        const facesNote = faces.length ? ` · ${faces.length} faces (${faces.reduce((n, l) => n + l.count, 0)} strokes)` : '';
-        if (req.quality === 'preview') {
-          const shown = previewLayers(layers);
-          lastPlan = `${shown.length}/${layers.length} layers · ${shown.reduce((n, l) => n + l.count, 0)} strokes${facesNote}`;
-          prepare(preview, req, PREVIEW_FIELD_EDGE);
-          for (const l of [...shown, ...faces]) strokes(req, preview, l, 0, l.count, PREVIEW_SEGMENTS, fu);
-          finish(req, preview, target);
-          return;
-        }
-        // Final: own targets (the live preview keeps drawing with this instance in between batches).
-        const t: Targets = { src: null, a: null, b: null, paint: null };
-        try {
-          prepare(t, req, FINAL_FIELD_EDGE);
-          const tl = req.timelapse;
-          const all: LayerPlan[] = [...layers, ...faces];
-          const list = batches(all, tl ? Math.max(1, Math.round(tl.batch)) : BATCH);
-          lastPlan = `final ${layers.length} layers · ${layers.reduce((n, l) => n + l.count, 0)} strokes${facesNote} · ${list.length} batches`;
-          if (tl) {
-            finish(req, t, target); // the underpainting
-            await tl.frame(0);
-          }
-          for (let i = 0; i < list.length; i++) {
-            const bt = list[i];
-            const layer = bt && all[bt.layer];
-            if (!bt || !layer) continue;
-            strokes(req, t, layer, bt.first, bt.count, FINAL_SEGMENTS, fu);
-            if (tl) {
-              finish(req, t, target);
-              await tl.frame((i + 1) / list.length);
-              if (gl.isContextLost()) throw new Error('Graphics context was lost while painting');
-            } else if (i % 2 === 1) {
-              gl.flush();
-              req.onProgress?.((i + 1) / list.length);
-              await new Promise((r) => setTimeout(r, 0));
-              if (gl.isContextLost()) throw new Error('Graphics context was lost while painting');
-            }
-          }
-          finish(req, t, target);
-          req.onProgress?.(1);
-        } finally {
-          free(t);
-        }
-      },
-      info() {
-        return { plan: lastPlan };
-      },
-      dispose() {
-        free(preview);
-        for (const prog of Object.values(p)) prog.dispose();
-      },
-    };
+    return createPainter(kit, null);
   },
 };
+
+/** The Flow Painter renderer; given `reliefOf` (settings from the params), it paints Impasto. */
+export function createPainter(kit: GLKit, reliefOf: ((params: Params) => Relief) | null): LensInstance {
+  const relief = (params: Params): Relief | null => (reliefOf ? reliefOf(params) : null);
+  const gl = kit.gl;
+  const p = {
+    copy: kit.program(fragment(COPY), 'flow.copy'),
+    tensor: kit.program(fragment(COLOR_GLSL, TENSOR), 'flow.tensor'),
+    blur: kit.program(fragment(BLUR), 'flow.blur'),
+    stroke: new Program(gl, fragment(STROKE_FS), GLSL_HEADER + COLOR_GLSL + '\n' + STROKE_VS, 'flow.stroke'),
+    canvas: kit.program(fragment(CANVAS), 'flow.canvas'),
+    wash: kit.program(fragment(WASH), 'flow.wash'),
+    // Impasto's programs are only built for Impasto, so they can never break Flow Painter
+    impasto: reliefOf ? new Program(gl, fragment(IMPASTO_FS), GLSL_HEADER + COLOR_GLSL + '\n' + STROKE_VS, 'impasto.stroke') : null,
+    light: reliefOf ? kit.program(fragment(LIGHT), 'impasto.light') : null,
+  };
+  const preview: Targets = { src: null, a: null, b: null, paint: null, height: null, both: null };
+  let lastPlan = '';
+
+  /** Photo copy with mipmaps (blurred colors per brush size), and the smoothed structure tensor. */
+  function prepare(t: Targets, req: RenderRequest, fieldEdge: number): { tensor: RenderTarget; src: RenderTarget } {
+    const W = req.width;
+    const H = req.height;
+    t.src = kit.ensureTarget(t.src, W, H);
+    kit.draw(p.copy, t.src, { textures: { u_input: req.input } });
+    gl.bindTexture(gl.TEXTURE_2D, t.src.tex);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+
+    const s = Math.min(1, fieldEdge / Math.max(W, H));
+    const fw = Math.max(2, Math.round(W * s));
+    const fh = Math.max(2, Math.round(H * s));
+    t.a = kit.ensureTarget(t.a, fw, fh, 'rgba16f');
+    t.b = kit.ensureTarget(t.b, fw, fh, 'rgba16f');
+    const fieldRef = refScale(fw, fh);
+    kit.draw(p.tensor, t.a, {
+      textures: { u_src: t.src.tex as WebGLTexture },
+      uniforms: { u_texel: [1 / fw, 1 / fh], u_lod: Math.max(0, Math.log2(W / fw)), u_gradScale: fieldRef, u_flat: FLAT_GRADIENT },
+    });
+    const sigma = Math.min(24, Math.max(4, 2 * Number(req.params.strokeWidth))) * fieldRef;
+    kit.draw(p.blur, t.b, { textures: { u_src: t.a.tex as WebGLTexture }, uniforms: { u_dir: [1 / fw, 0], u_sigma: sigma } });
+    kit.draw(p.blur, t.a, { textures: { u_src: t.b.tex as WebGLTexture }, uniforms: { u_dir: [0, 1 / fh], u_sigma: sigma } });
+    t.paint = kit.ensureTarget(t.paint, W, H);
+    kit.draw(p.wash, t.paint, {
+      textures: { u_src: t.src.tex as WebGLTexture },
+      uniforms: {
+        u_tone: hexToRgb01(CANVAS_TONES[String(req.params.canvas)] ?? CANVAS_TONES.linen ?? '#e8dcc4'),
+        u_lod: Math.max(0, Math.log2((Math.max(4, Number(req.params.strokeWidth)) * 8 * refScale(W, H)) / 2)),
+      },
+    });
+    if (relief(req.params)) {
+      const fresh = !t.height || t.height.width !== W || t.height.height !== H;
+      t.height = kit.ensureTarget(t.height, W, H, 'rgba16f');
+      if (fresh || !t.both) t.both = bothTarget(t.paint, t.height, t.both);
+      kit.clear(t.height, [0, 0, 0]);
+    }
+    return { tensor: t.a, src: t.src };
+  }
+
+  /** One framebuffer with the paint (attachment 0) and its thickness (attachment 1), so each stroke lays down both. */
+  function bothTarget(paint: RenderTarget, height: RenderTarget, old: RenderTarget | null): RenderTarget {
+    if (old?.fbo) gl.deleteFramebuffer(old.fbo);
+    const fbo = gl.createFramebuffer();
+    if (!fbo) throw new Error('createFramebuffer failed');
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, paint.tex, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, height.tex, 0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (status !== gl.FRAMEBUFFER_COMPLETE && !gl.isContextLost()) {
+      gl.deleteFramebuffer(fbo);
+      throw new Error(`Impasto framebuffer incomplete (0x${status.toString(16)})`);
+    }
+    // only the framebuffer is ours: the textures belong to paint and height
+    return { fbo, tex: null, width: paint.width, height: paint.height };
+  }
+
+  /** Face uniforms shared by every stroke draw of a render. */
+  function faceUniforms(faces: FacePlan[]) {
+    return {
+      count: faces.length,
+      centre: new Float32Array(faces.flatMap((f) => [f.ellipse.cx, f.ellipse.cy])),
+      shape: new Float32Array(faces.flatMap((f) => [f.ellipse.rx, f.ellipse.ry, f.width])),
+    };
+  }
+
+  function strokes(req: RenderRequest, t: Targets, layer: LayerPlan, first: number, count: number, segments: number, fu: ReturnType<typeof faceUniforms>) {
+    const detail = Math.max(0.25, Number(req.params.detail));
+    const face = 'face' in layer ? (layer as FacePlan) : null;
+    const jitter = Number(req.params.jitter);
+    const r = relief(req.params);
+    kit.drawInstanced(
+      r && p.impasto ? p.impasto : p.stroke,
+      r && p.impasto ? (t.both as RenderTarget) : (t.paint as RenderTarget),
+      {
+        textures: { u_src: (t.src as RenderTarget).tex as WebGLTexture, u_tensor: (t.a as RenderTarget).tex as WebGLTexture },
+        uniforms: {
+          u_size: [req.width, req.height],
+          u_cell: layer.cell,
+          u_width: layer.width,
+          u_length: layer.length,
+          u_lod: layer.lod,
+          u_prevLod: layer.prevLod,
+          u_accept: 0.06 / detail,
+          // faces: less color noise, strokes that stop at small changes (features), and loaded brushes
+          u_jitter: face ? 0.4 * jitter : jitter,
+          u_edgeStop: face ? 0.16 : layer.prevLod < 0 ? 0.45 : 0.28,
+          u_bristles: Math.max(3, layer.width / 1.6),
+          u_dry: face || layer.prevLod < 0 ? 0.1 : 0.4,
+          u_gridOrigin: face ? [face.originX, face.originY] : [0, 0],
+          // Impasto: at full thickness a bead of paint stands a third of its brush width tall (reference px / HEIGHT_UNIT)
+          u_thick: r ? ((r.thickness * layer.width) / 3) / refScale(req.width, req.height) / HEIGHT_UNIT : 0,
+        },
+        ...(fu.count ? { vec2Arrays: { u_faceCentre: fu.centre }, vec3Arrays: { u_faceShape: fu.shape } } : {}),
+        ints: {
+          u_cols: layer.cols,
+          u_count: layer.count,
+          u_prime: layer.prime,
+          u_offset: first,
+          u_layer: layer.index,
+          u_seed: req.seed % 2147483647,
+          u_segments: segments,
+          u_faceCount: fu.count,
+          u_face: face ? face.face : -1,
+        },
+      },
+      2 * (segments + 1),
+      count,
+      true,
+    );
+  }
+
+  function finish(req: RenderRequest, t: Targets, target: RenderTarget) {
+    const r = relief(req.params);
+    if (r && t.height && p.light) {
+      const a = (r.lightAngle * Math.PI) / 180;
+      kit.draw(p.light, target, {
+        textures: { u_paint: (t.paint as RenderTarget).tex as WebGLTexture, u_height: t.height.tex as WebGLTexture },
+        uniforms: {
+          u_texel: [1 / req.width, 1 / req.height],
+          u_ref: refScale(req.width, req.height),
+          u_unit: HEIGHT_UNIT,
+          // image space: y runs down, so light from above has a negative y
+          u_light: [Math.cos(a), -Math.sin(a), 0.75],
+          u_gloss: r.gloss,
+          u_weave: Math.min(1, Math.max(0, (2.2 * refScale(req.width, req.height) - 1.5) / 2)),
+        },
+      });
+      return;
+    }
+    kit.draw(p.canvas, target, {
+      textures: { u_paint: (t.paint as RenderTarget).tex as WebGLTexture },
+      // The weave fades out when it would be finer than ~1.5 px (small previews), avoiding moiré.
+      uniforms: { u_ref: refScale(req.width, req.height), u_weave: Math.min(1, Math.max(0, (2.2 * refScale(req.width, req.height) - 1.5) / 2)) },
+    });
+  }
+
+  function free(t: Targets) {
+    kit.deleteTarget(t.src);
+    kit.deleteTarget(t.a);
+    kit.deleteTarget(t.b);
+    kit.deleteTarget(t.paint);
+    kit.deleteTarget(t.height);
+    if (t.both?.fbo) gl.deleteFramebuffer(t.both.fbo);
+    t.src = t.a = t.b = t.paint = t.height = t.both = null;
+  }
+
+  return {
+    async render(req, target) {
+      const layers = planLayers(req.width, req.height, paintParams(req.params));
+      // each face gets a fine layer of its own, painted last
+      const faces = planFaces(req.faces, req.width, req.height, paintParams(req.params), layers);
+      const fu = faceUniforms(faces);
+      const facesNote = faces.length ? ` · ${faces.length} faces (${faces.reduce((n, l) => n + l.count, 0)} strokes)` : '';
+      if (req.quality === 'preview') {
+        const shown = previewLayers(layers);
+        lastPlan = `${shown.length}/${layers.length} layers · ${shown.reduce((n, l) => n + l.count, 0)} strokes${facesNote}`;
+        prepare(preview, req, PREVIEW_FIELD_EDGE);
+        for (const l of [...shown, ...faces]) strokes(req, preview, l, 0, l.count, PREVIEW_SEGMENTS, fu);
+        finish(req, preview, target);
+        return;
+      }
+      // Final: own targets (the live preview keeps drawing with this instance in between batches).
+      const t: Targets = { src: null, a: null, b: null, paint: null, height: null, both: null };
+      try {
+        prepare(t, req, FINAL_FIELD_EDGE);
+        const tl = req.timelapse;
+        const all: LayerPlan[] = [...layers, ...faces];
+        const list = batches(all, tl ? Math.max(1, Math.round(tl.batch)) : BATCH);
+        lastPlan = `final ${layers.length} layers · ${layers.reduce((n, l) => n + l.count, 0)} strokes${facesNote} · ${list.length} batches`;
+        if (tl) {
+          finish(req, t, target); // the underpainting
+          await tl.frame(0);
+        }
+        for (let i = 0; i < list.length; i++) {
+          const bt = list[i];
+          const layer = bt && all[bt.layer];
+          if (!bt || !layer) continue;
+          strokes(req, t, layer, bt.first, bt.count, FINAL_SEGMENTS, fu);
+          if (tl) {
+            finish(req, t, target);
+            await tl.frame((i + 1) / list.length);
+            if (gl.isContextLost()) throw new Error('Graphics context was lost while painting');
+          } else if (i % 2 === 1) {
+            gl.flush();
+            req.onProgress?.((i + 1) / list.length);
+            await new Promise((r) => setTimeout(r, 0));
+            if (gl.isContextLost()) throw new Error('Graphics context was lost while painting');
+          }
+        }
+        finish(req, t, target);
+        req.onProgress?.(1);
+      } finally {
+        free(t);
+      }
+    },
+    info() {
+      return { plan: lastPlan };
+    },
+    dispose() {
+      free(preview);
+      for (const prog of Object.values(p)) prog?.dispose();
+    },
+  };
+}

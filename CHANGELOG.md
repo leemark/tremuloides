@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.27.0 (2026-10-22)
+- New lens: **Impasto**. Flow Painter's brushwork as thick oil paint, with ridges and furrows that catch the light and wet highlights
+- Set how thick and glossy the paint is, and which side the light comes from
+
 ## v0.26.2 (2026-10-21)
 - Flow Painter: faces in the background stay loose. Only the people the photo is about, at least a third as big as the biggest face, get the fine brush
 
