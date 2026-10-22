@@ -2,6 +2,10 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.26.2: Flow Painter background faces
+1. With the face flag on, render a portrait with small faces in the background. Only the main face is painted finely; the crowd stays loose.
+2. A group photo with similar-sized faces: every face is still painted finely.
+
 ## v0.26.1: Flow Painter face blend
 1. With the face flag on (see v0.26.0), render a photo of people in **Flow Painter**.
 2. Zoom in around each face: no oval, ring or jagged edge. Strokes get finer gradually toward the face, hair included.
