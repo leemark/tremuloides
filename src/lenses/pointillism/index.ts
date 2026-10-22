@@ -17,7 +17,7 @@ export const GROUNDS: Record<string, string> = {
 };
 
 const PARAMS: ParamSpec[] = [
-  { id: 'dotSize', label: 'Dot size', type: 'range', min: 3, max: 20, step: 0.5, default: 8, help: 'The main dots; a ground of bigger dots goes under them, finer ones over detail' },
+  { id: 'dotSize', label: 'Dot size', type: 'range', min: 3, max: 20, step: 0.5, default: 14, help: 'The main dots; a ground of bigger dots goes under them, finer ones over detail' },
   { id: 'detail', label: 'Detail', type: 'range', min: 0.5, max: 2, step: 0.05, default: 1, help: 'More dots, and fine dots paint more of the picture' },
   {
     id: 'palette',
@@ -134,6 +134,7 @@ export const pointillismLens: Lens = {
         const live = req.quality === 'preview';
         // the viewfinder draws the layers that fit its budget; photos get every dot
         const all: DotLayer[] = live ? [...previewLayers(layers), ...faces] : [...layers, ...faces];
+        const byIndex = new Map(all.map((l) => [l.index, l]));
         const src = live ? (pSrc = kit.ensureTarget(pSrc, W, H)) : kit.createTarget(W, H);
         const paint = live ? (pPaint = kit.ensureTarget(pPaint, W, H)) : kit.createTarget(W, H);
         try {
@@ -159,7 +160,8 @@ export const pointillismLens: Lens = {
           }
           for (let i = 0; i < list.length; i++) {
             const bt = list[i];
-            const layer = bt && all[bt.layer];
+            // by index: the viewfinder may leave out a fine layer, and face layers' indices follow every regular one
+            const layer = bt && byIndex.get(bt.layer);
             if (!bt || !layer) continue;
             dots(req, src, paint, layer, bt.first, bt.count, faces);
             if (tl) {

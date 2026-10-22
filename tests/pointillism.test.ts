@@ -3,12 +3,12 @@ import { BATCH, FACE_KEEP_OUT, LAYERS, MAX_PIGMENTS, PALETTES, batches, palette,
 import { dotCount, pointillismLens } from '../src/lenses/pointillism';
 import { oklabToSrgb } from '../src/color/oklab';
 
-const def = { dotSize: 8, detail: 1 };
+const def = { dotSize: 14, detail: 1 };
 
 describe('pointillism plan', () => {
   it('has a ground of big dots, the main dots, and small dots gated to detail', () => {
     const l = planLayers(1080, 1440, def);
-    expect(l.map((x) => x.size)).toEqual(LAYERS.map((x) => 8 * x.scale));
+    expect(l.map((x) => x.size)).toEqual(LAYERS.map((x) => 14 * x.scale));
     expect(l[0]?.prevLod).toBe(-1);
     expect(l[1]?.prevLod).toBe(-1);
     expect(l[2]?.prevLod).toBe(l[1]?.lod);
@@ -30,7 +30,7 @@ describe('pointillism plan', () => {
 
   it('paints more dots with more detail, and fewer with bigger dots', () => {
     expect(totalDots(planLayers(1080, 1080, { ...def, detail: 2 }))).toBeGreaterThan(totalDots(planLayers(1080, 1080, def)));
-    expect(totalDots(planLayers(1080, 1080, { ...def, dotSize: 16 }))).toBeLessThan(totalDots(planLayers(1080, 1080, def)));
+    expect(totalDots(planLayers(1080, 1080, { ...def, dotSize: 20 }))).toBeLessThan(totalDots(planLayers(1080, 1080, def)));
   });
 
   it('keeps the viewfinder within budget and batches every dot once', () => {

@@ -27,7 +27,7 @@ The final render draws dots in batches of 20,000 and yields to the UI every 4 ba
 ## Params
 | Id | Range | Default | Notes |
 |---|---|---|---|
-| `dotSize` | 3–20 ref px | 8 | The main dots |
+| `dotSize` | 3–20 ref px | 14 | The main dots |
 | `detail` | 0.5–2 | 1 | Dot density, and how readily small dots paint |
 | `palette` | seurat / photo | seurat | Pure pigments, or the photo's own colors |
 | `separation` | 0–1 | 0.75 | How far dots stray from the photo's color, and how pure they are |
