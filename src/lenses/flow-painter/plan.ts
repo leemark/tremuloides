@@ -115,6 +115,12 @@ export type { FaceBox };
 export const MAX_FACES = 8;
 /** Faces narrower than this (output px) are left to the regular layers. */
 export const MIN_FACE_PX = 24;
+/**
+ * Faces narrower than this share of the widest one stay loose, painted with the rest: a painter
+ * renders the people the picture is about, not the crowd behind them. (On a portrait with three tiny
+ * faces in the background, those came out as crisp little portraits in a loose background.)
+ */
+export const FACE_MIN_SHARE = 1 / 3;
 /** A face's brush is its width / this, so features (eyes, mouth) get a few strokes each. */
 export const FACE_BRUSHES = 24;
 /** Never finer than this (ref px), however small the face. */
@@ -164,13 +170,16 @@ export function faceEllipse(f: FaceBox, width: number, height: number): FaceElli
   };
 }
 
-/** Faces worth their own brush: on the picture, big enough, the largest MAX_FACES. */
+/** Faces worth their own brush: on the picture, big enough, at least FACE_MIN_SHARE of the widest, the largest MAX_FACES. */
 export function usableFaces(faces: readonly FaceBox[] | undefined, width: number, height: number): FaceBox[] {
   if (!faces) return [];
-  return faces
+  const ok = faces
     .filter((f) => [f.x, f.y, f.w, f.h].every(Number.isFinite) && f.w > 0 && f.h > 0)
     .filter((f) => f.x < 1 && f.y < 1 && f.x + f.w > 0 && f.y + f.h > 0)
-    .filter((f) => f.w * width >= MIN_FACE_PX)
+    .filter((f) => f.w * width >= MIN_FACE_PX);
+  const widest = Math.max(0, ...ok.map((f) => f.w));
+  return ok
+    .filter((f) => f.w >= FACE_MIN_SHARE * widest)
     .sort((a, b) => b.w * b.h - a.w * a.h)
     .slice(0, MAX_FACES);
 }

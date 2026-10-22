@@ -130,6 +130,30 @@ describe('flow painter faces', () => {
     expect(usableFaces(undefined, 100, 100)).toEqual([]);
   });
 
+  it('leaves background faces loose: only faces at least a third as wide as the widest', () => {
+    // a portrait with three tiny faces in the crowd behind (Mark's drummer photo)
+    const portrait = usableFaces(
+      [
+        { x: 0.38, y: 0.17, w: 0.188, h: 0.193 },
+        { x: 0.01, y: 0.47, w: 0.03, h: 0.042 },
+        { x: 0.04, y: 0.45, w: 0.028, h: 0.04 },
+        { x: 0.15, y: 0.49, w: 0.027, h: 0.037 },
+      ],
+      2048,
+      2048,
+    );
+    expect(portrait.map((f) => f.w)).toEqual([0.188]);
+    // a group of similar faces all count
+    const group = [
+      { x: 0.3, y: 0.3, w: 0.112, h: 0.108 },
+      { x: 0.5, y: 0.3, w: 0.098, h: 0.094 },
+      { x: 0.6, y: 0.3, w: 0.112, h: 0.108 },
+    ];
+    expect(usableFaces(group, 3072, 4080)).toHaveLength(3);
+    // exactly a third still counts
+    expect(usableFaces([{ x: 0, y: 0, w: 0.3, h: 0.3 }, { x: 0.5, y: 0.5, w: 0.1, h: 0.1 }], 1000, 1000)).toHaveLength(2);
+  });
+
   it('turns a face box into the ellipse painted as the face', () => {
     const e = faceEllipse(face, 1000, 1000);
     expect(e.cx).toBeCloseTo(450, 6);

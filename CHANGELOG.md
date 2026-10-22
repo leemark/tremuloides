@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.26.2 (2026-10-21)
+- Flow Painter: faces in the background stay loose. Only the people the photo is about, at least a third as big as the biggest face, get the fine brush
+
 ## v0.26.1 (2026-10-20)
 - Flow Painter: faces blend into the painting. No more oval or ring of stroke ends around them; the brushwork gets finer gradually toward each face
 
