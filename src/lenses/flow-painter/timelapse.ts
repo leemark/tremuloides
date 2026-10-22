@@ -1,7 +1,7 @@
 import type { Lens, LensAction, LensActionContext, Params } from '../types';
 import { GLAnimator, animationSize } from '../../app/animate';
 import { videoSupported } from '../../app/video';
-import { planLayers, timelapseBatch } from './plan';
+import { planLayers, totalStrokes } from './plan';
 import { logEvent } from '../../diagnostics/log';
 import { fragment } from '../../gl/kit';
 import { resizeTo } from '../../util/canvas';
@@ -15,7 +15,24 @@ export const TIMELAPSE = { intro: 1, strokes: 8, outro: 2.5, fps: 20 } as const;
  * "Timelapse": repaints the photo from its original, recording the canvas as the underpainting
  * and each layer of strokes go down, and saves the video to the gallery.
  */
-export function timelapseAction(load: () => Promise<Lens> = async () => (await import('./index')).flowPainterLens): LensAction {
+/** How many strokes (or dots) a lens paints for these params at this size; sets the timelapse's pace. */
+export type StrokeCount = (params: Params, width: number, height: number) => number;
+
+function flowStrokes(params: Params, w: number, h: number): number {
+  return totalStrokes(
+    planLayers(w, h, {
+      detail: Number(params.detail),
+      strokeLength: Number(params.strokeLength),
+      strokeWidth: Number(params.strokeWidth),
+      layers: Number(params.layers),
+    }),
+  );
+}
+
+export function timelapseAction(
+  load: () => Promise<Lens> = async () => (await import('./index')).flowPainterLens,
+  strokeCount: StrokeCount = flowStrokes,
+): LensAction {
   let busy = false;
   return {
     id: 'timelapse',
@@ -54,12 +71,7 @@ export function timelapseAction(load: () => Promise<Lens> = async () => (await i
         const lens = await load();
         const inst = lens.create(a.kit);
         const params: Params = ctx.capture.params;
-        const layers = planLayers(w, h, {
-          detail: Number(params.detail),
-          strokeLength: Number(params.strokeLength),
-          strokeWidth: Number(params.strokeWidth),
-          layers: Number(params.layers),
-        });
+        const strokes = strokeCount(params, w, h);
         // Intro: the photo itself.
         const photo = a.kit.createTarget(w, h);
         const copy = a.kit.program(fragment(COPY), 'timelapse.copy');
@@ -81,7 +93,7 @@ export function timelapseAction(load: () => Promise<Lens> = async () => (await i
             quality: 'final',
             ...(faces.length ? { faces } : {}),
             timelapse: {
-              batch: timelapseBatch(layers, TIMELAPSE.strokes, TIMELAPSE.fps),
+              batch: Math.max(1, Math.ceil(strokes / Math.max(1, Math.round(TIMELAPSE.strokes * TIMELAPSE.fps)))),
               frame: async (f) => {
                 ctx.setLabel(`${Math.round(f * 100)}%`);
                 await a.present(1);
