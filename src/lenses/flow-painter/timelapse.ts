@@ -1,4 +1,4 @@
-import type { LensAction, LensActionContext, Params } from '../types';
+import type { Lens, LensAction, LensActionContext, Params } from '../types';
 import { GLAnimator, animationSize } from '../../app/animate';
 import { videoSupported } from '../../app/video';
 import { planLayers, timelapseBatch } from './plan';
@@ -15,7 +15,7 @@ export const TIMELAPSE = { intro: 1, strokes: 8, outro: 2.5, fps: 20 } as const;
  * "Timelapse": repaints the photo from its original, recording the canvas as the underpainting
  * and each layer of strokes go down, and saves the video to the gallery.
  */
-export function timelapseAction(): LensAction {
+export function timelapseAction(load: () => Promise<Lens> = async () => (await import('./index')).flowPainterLens): LensAction {
   let busy = false;
   return {
     id: 'timelapse',
@@ -51,8 +51,8 @@ export function timelapseAction(): LensAction {
         ctx.view.append(a.canvas);
         ctx.onCleanup(() => a.canvas.remove());
 
-        const { flowPainterLens } = await import('./index');
-        const inst = flowPainterLens.create(a.kit);
+        const lens = await load();
+        const inst = lens.create(a.kit);
         const params: Params = ctx.capture.params;
         const layers = planLayers(w, h, {
           detail: Number(params.detail),

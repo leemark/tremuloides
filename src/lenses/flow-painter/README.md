@@ -2,6 +2,8 @@
 
 Paints the photo with brush strokes that follow the shapes in the scene: along ridgelines, up aspen trunks, and swirling with the clouds. Strokes go down coarse to fine, like a painter blocking in big shapes and then adding detail where the picture needs it.
 
+[Impasto](../impasto/README.md) is this painter with thick paint and light (`createPainter(kit, reliefOf)`).
+
 Everything runs on the GPU. The stroke geometry is built in the vertex shader, so there are no vertex buffers and no CPU work per stroke.
 
 ## Algorithm

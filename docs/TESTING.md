@@ -2,6 +2,14 @@
 
 Run these on the phone in Chrome (Android) after each deploy. Each section is listed with the version that added it.
 
+## v0.27.0: Impasto
+1. Take or import a landscape photo. Pick **Impasto** and render: brush strokes stand up as ridges, lit from the top left, with fine bristle furrows and a few glints.
+2. Colors match Flow Painter's on the same photo: flat areas aren't darker or washed out.
+3. Set **Light from** to 315 and render again: the lit and shaded sides of every ridge swap.
+4. Paint thickness 0: flat paint with no relief. Thickness 1 and Gloss 1: deep ridges, strong highlights, no black or white blowouts.
+5. A photo of people (with the face flag on, see v0.26.0): faces in fine strokes with fine ridges, no oval around them.
+6. Timelapse on an Impasto photo: the paint builds up, lit, layer by layer.
+
 ## v0.26.2: Flow Painter background faces
 1. With the face flag on, render a portrait with small faces in the background. Only the main face is painted finely; the crowd stays loose.
 2. A group photo with similar-sized faces: every face is still painted finely.
